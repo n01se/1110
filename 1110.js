@@ -62,15 +62,18 @@ var load_images = function() {
 };
 
 var draw = function() {
-  ctx.fillStyle = y>0?"rgb(0,0,0)":"rgb(255,255,255)";
-  ctx.fillRect (0, 0, canvas_size.x, canvas_size.y);
+  ctx.fillStyle = y>-1024?"rgb(0,0,0)":"rgb(255,255,255)";
+  ctx.fillRect(0, 0, canvas_size.x, canvas_size.y);
 
   var ox, oy;
   for_tiles(function(tx, ty, name) {
     if( images[name] && images[name].isLoaded) {
       ox = tx*tilesize-x;
       oy = ty*tilesize-y;
-      ctx.drawImage(images[name][0], ox, oy);
+      if( ox < canvas_size.x && oy < canvas_size.y &&
+          ox+tilesize > 0 && oy+tilesize > 0 ) {
+        ctx.drawImage(images[name][0], ox, oy);
+      }
     }
   });
 
@@ -89,8 +92,8 @@ avatar.load(draw);
 
 var pull = function() {
   if(pulling) {
-    x += clamp(-mousepull.x / 20, -5, 5);
-    y += clamp(-mousepull.y / 20, -5, 5);
+    x += clamp(Math.round(-mousepull.x / 20), -5, 5);
+    y += clamp(Math.round(-mousepull.y / 20), -5, 5);
     load_images();
     draw();
     requestAnimFrame(pull);
