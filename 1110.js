@@ -11,6 +11,8 @@ window.requestAnimFrame = (function(){
 })();
 
 var send_poll_interval = 50;
+var swing = 2;
+var maxSpeed = 0.3; // pixels per ms
 
 var clamp = function(x, min, max) {
   return x>min?(x<max?x:max):min;
@@ -28,6 +30,8 @@ var avatar = $('<img src="avatar01.png" />');
 
 var x = -608;
 var y = -1483;
+var dx, dy;
+var last_update;
 
 var pulling = false;
 var mousepull = {x:0, y:0};
@@ -64,15 +68,20 @@ var load_images = function() {
 
 var draw = function() {
   //console.log('draw!');
+  var now = (new Date()).getTime();
+  last_update = last_update || now;
+  x += dx * (now - last_update);
+  y += dy * (now - last_update);
+  last_update = now;
+
   ctx.fillStyle = y>-1024?"rgb(0,0,0)":"rgb(255,255,255)";
   ctx.fillRect(0, 0, canvas_size.x, canvas_size.y);
 
-
-  var ox, oy;
+  var ox, oy, oa;
   for_tiles(function(tx, ty, name) {
     if( images[name] && images[name].isLoaded) {
-      ox = tx*tilesize-x-370;
-      oy = ty*tilesize-y-320;
+      ox = tx*tilesize-Math.round(x)-370;
+      oy = ty*tilesize-Math.round(y)-320;
       if( ox < canvas_size.x && oy < canvas_size.y &&
           ox+tilesize > 0 && oy+tilesize > 0 ) {
         ctx.drawImage(images[name][0], ox, oy);
@@ -82,51 +91,56 @@ var draw = function() {
 
   ctx.save();
   ctx.translate(370,320);
-  ctx.rotate(-mousepull.x/500);
-  //ctx.translate(-13,-8);
+  ctx.rotate(dx*swing);
   ctx.drawImage(avatar[0],0,0);
   ctx.restore();
 
   for(avatarId in allAvatars) {
     if(avatarId != clientId && allAvatars[avatarId].x) {
-      ox = allAvatars[avatarId].x - x + 370;
-      oy = allAvatars[avatarId].y - y + 320;
+      oa = allAvatars[avatarId];
+      ox = oa.x - x + 370 + oa.dx * (now - oa.last_update);
+      oy = oa.y - y + 320 + oa.dy * (now - oa.last_update);
+      ctx.save();
+      ctx.translate(ox,oy);
+      ctx.rotate(allAvatars[avatarId].dx*swing);
+      ctx.drawImage(avatar[0],0,0);
+      ctx.restore();
       //console.log("client", avatarId, "at", ox, oy);
-      ctx.drawImage(avatar[0], ox, oy);
     }
   }
 };
 
-// initial draw
-load_images();
-images['1n1w'].load(draw);
-avatar.load(draw);
-
 setInterval(function () {
-  if (ws && pending_update) {
+  if (window.ws && ws.readyState && pending_update) {
     ws.send(JSON.stringify(pending_update));
     pending_update = null;
   }
 }, send_poll_interval);
 
 var pull = function() {
-  x += clamp(Math.round(-mousepull.x / 20), -5, 5);
-  y += clamp(Math.round(-mousepull.y / 20), -5, 5);
-  pending_update = {x: x, y: y};
+  dx = clamp(-mousepull.x / 1000.0, -maxSpeed, maxSpeed);
+  dy = clamp(-mousepull.y / 1000.0, -maxSpeed, maxSpeed);
+  pending_update = {x: x, y: y, dx: dx, dy: dy};
   load_images();
-  draw();
-  if(pulling) {
-    requestAnimFrame(pull);
-  }
 };
+
+var animate = function() {
+  pull();
+  draw();
+  requestAnimFrame(animate);
+};
+
+window.addEventListener('load', function () {
+  load_images();
+  animate();
+});
 
 $('canvas').mousedown(function(e){
   pulling = true;
-  mousepull = {x: 350-e.clientX, y: 350-e.clientY};
-  requestAnimFrame(pull);
+  mousepull = {x: 385-e.clientX, y: 350-e.clientY};
 }).mousemove(function(e){
   if(pulling) {
-    mousepull = {x: 350-e.clientX, y: 350-e.clientY};
+    mousepull = {x: 385-e.clientX, y: 350-e.clientY};
   }
 });
 $('body').mouseup(function(e){

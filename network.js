@@ -7,7 +7,8 @@ window.addEventListener('load', function () {
     console.log("WebSocket connection established");
   };
   ws.onmessage = function (e) {
-    console.log("WebSocket message received: ", e.data);
+    //console.log("WebSocket message received: ", e.data);
+    var now = (new Date()).getTime();
     var msg = JSON.parse(e.data);
     if(msg.id) {
       clientId = msg.id;
@@ -18,11 +19,11 @@ window.addEventListener('load', function () {
     } else if (msg.change) {
         for (var id in msg.change) {
             allAvatars[id] = msg.change[id];
+            allAvatars[id].last_update = now;
         }
     } else {
         console.error("Unrecognized message type: " + msg);
     }
-    requestAnimFrame(draw);
   };
   ws.onclose = function () {
     console.log("WebSocket connection closed");
