@@ -9,3 +9,15 @@ window.requestAnimFrame = (function(){
 	    window.setTimeout(callback, 1000 / 60);
 	  };
 })();
+
+
+var loadImage = function(src, callback) {
+  var img = document.createElement('img');
+  img.crossOrigin = '';
+  img.src = src;
+  if (typeof callback !== "undefined") {
+    img.onload = callback;
+  }
+  return img;
+};
+
