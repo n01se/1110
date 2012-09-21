@@ -28,13 +28,15 @@ var canvas_size = {x: $('canvas').width(), y: $('canvas').height()};
 var name = "1n1w";
 var images = {};
 
-var avatar = $('<img src="avatar01.png" />');
+var avatar_img = $('<img src="avatar01.png" />');
 
-var x = -608;
-var y = -1483;
-var dx = 0;
-var dy = 0;
-var last_update;
+var avatar = {
+  x : -608,
+  y : -1483,
+  dx : 0,
+  dy : 0,
+  msg : "",
+  last_update : 0};
 
 var pulling = false;
 var mousepull = {x:0, y:0};
@@ -47,8 +49,8 @@ var tile_name=function(x,y){
 
 var for_tiles = function(f) {
   var name, url;
-  var sx = Math.floor(x / tilesize);
-  var sy = Math.floor(y / tilesize);
+  var sx = Math.floor(avatar.x / tilesize);
+  var sy = Math.floor(avatar.y / tilesize);
   for(var dx = -1; dx <= 1; ++dx)
   for(var dy = -1; dy <= 1; ++dy) {
     name = tile_name(sx+dx, sy+dy);
@@ -69,22 +71,32 @@ var load_images = function() {
   });
 };
 
+var drawAvatar = function (ox, oy, dx, label) {
+  var x = 370 + ox, y = 320 + oy;
+  // Only draw if on-screen
+  if (x > -60 && y > -60 && x < 800 && y < 700) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(dx*swing);
+    ctx.drawImage(avatar_img[0],0,0);
+    ctx.fillText(label,0,70);
+    ctx.restore();
+  }
+};
+
 var draw = function() {
   //console.log('draw!');
   var now = (new Date()).getTime();
-  last_update = last_update || now;
-  x += dx * (now - last_update);
-  y += dy * (now - last_update);
-  last_update = now;
 
-  ctx.fillStyle = y>-1024?"rgb(0,0,0)":"rgb(255,255,255)";
+  ctx.fillStyle = avatar.y>-1024?"rgb(0,0,0)":"rgb(255,255,255)";
   ctx.fillRect(0, 0, canvas_size.x, canvas_size.y);
 
+  // Draw the background
   var ox, oy, oa;
   for_tiles(function(tx, ty, name) {
     if( images[name] && images[name].isLoaded) {
-      ox = tx*tilesize-Math.round(x)-370;
-      oy = ty*tilesize-Math.round(y)-320;
+      ox = tx*tilesize-Math.round(avatar.x)-370;
+      oy = ty*tilesize-Math.round(avatar.y)-320;
       if( ox < canvas_size.x && oy < canvas_size.y &&
           ox+tilesize > 0 && oy+tilesize > 0 ) {
         ctx.drawImage(images[name][0], ox, oy);
@@ -94,24 +106,25 @@ var draw = function() {
 
   ctx.fillStyle = "rgb(0,0,0)";
   ctx.font = "10pt Comic Sans, Arial";
-  ctx.save();
-  ctx.translate(370,320);
-  ctx.rotate(dx*swing);
-  ctx.drawImage(avatar[0],0,0);
-  if(clientId) ctx.fillText(clientId,0,70);
-  ctx.restore();
 
+  // Draw our avatar
+  avatar.last_update = avatar.last_update || now;
+  avatar.x += avatar.dx * (now - avatar.last_update);
+  avatar.y += avatar.dy * (now - avatar.last_update);
+  avatar.last_update = now;
+  var label = "";
+  if (clientId) {
+    label = clientId + " " + avatar.msg;
+  }
+  drawAvatar(0, 0, avatar.dx, label);
+
+  // Draw the other avatars
   for(avatarId in allAvatars) {
     oa = allAvatars[avatarId];
     if(avatarId != clientId && oa.last_update) {
-      ox = Math.round(oa.x - x + 370 + oa.dx * (now - oa.last_update));
-      oy = Math.round(oa.y - y + 320 + oa.dy * (now - oa.last_update));
-      ctx.save();
-      ctx.translate(ox,oy);
-      ctx.rotate(allAvatars[avatarId].dx*swing);
-      ctx.drawImage(avatar[0],0,0);
-      ctx.fillText(avatarId,0,70);
-      ctx.restore();
+      ox = Math.round(oa.x - avatar.x + oa.dx * (now - oa.last_update));
+      oy = Math.round(oa.y - avatar.y + oa.dy * (now - oa.last_update));
+      drawAvatar(ox, oy, oa.dx, (avatarId + " " + (oa.msg || "")));
       //console.log("client", avatarId, "at", ox, oy);
     }
   }
@@ -138,9 +151,9 @@ var applyMousePull = function(d, pull) {
 };
 
 var pull = function() {
-  dx = applyMousePull(dx, mousepull.x);
-  dy = applyMousePull(dy, mousepull.y);
-  pending_update = {x: x, y: y, dx: dx, dy: dy};
+  avatar.dx = applyMousePull(avatar.dx, mousepull.x);
+  avatar.dy = applyMousePull(avatar.dy, mousepull.y);
+  pending_update = avatar;
   load_images();
 };
 
@@ -166,4 +179,40 @@ $('canvas').mousedown(function(e){
 $('body').mouseup(function(e){
   pulling = false;
   mousepull = {x:0, y:0};
+});
+
+
+// Key/message handling
+
+var messageTimer = null;
+
+$('body').keyup(function(e){
+  var key = e.keyCode,
+      msg = $('#message');
+  console.log("key:", e.keyCode);
+  if (key === 8) {
+    var txt = msg.text();
+    msg.text(txt.substring(0, txt.length-1));
+  }
+});
+
+$('body').keypress(function(e){
+  var key = e.keyCode, chr = e.charCode,
+      msg = $('#message');
+  console.log("char:", chr, String.fromCharCode(e.charCode));
+  if (key === 13) {
+    console.log("sending:", msg.text());
+    avatar.msg = msg.text();
+    pending_update = avatar;
+    msg.text("");
+    if (messageTimer) {
+      clearTimeout(messageTimer);
+    }
+    messageTimer = setTimeout(function () {
+      avatar.msg = "";
+      pending_update = avatar;
+    }, 15000);
+  } else {
+    msg.text(msg.text() + String.fromCharCode(chr));
+  }
 });
