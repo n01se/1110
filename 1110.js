@@ -249,7 +249,6 @@ $('body').keyup(function(e){
       msg = $('#message');
   //console.log("key:", e.keyCode);
 
-  startMessageTimer();
   if (messageTimer) {
     clearTimeout(messageTimer);
   }
