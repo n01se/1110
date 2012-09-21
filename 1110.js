@@ -235,14 +235,30 @@ $('body').mouseup(function(e){
 // Key/message handling
 
 var messageTimer = null;
+var clearNextMessage = false;
+
+var messageTimeout = function () {
+      messageTimer = null;
+      avatar.msg = "";
+      pending_update = avatar;
+};
+
 
 $('body').keyup(function(e){
   var key = e.keyCode,
       msg = $('#message');
   //console.log("key:", e.keyCode);
+
+  startMessageTimer();
+  if (messageTimer) {
+    clearTimeout(messageTimer);
+  }
+  messageTimer = setTimeout(messageTimeout, message_time);
+
   if (key === 8) {
-    var txt = msg.text();
-    msg.text(txt.substring(0, txt.length-1));
+    clearNextMessage = false;
+    avatar.msg = avatar.msg.substring(0, avatar.msg.length-1);
+    pending_update = avatar;
   }
 });
 
@@ -251,18 +267,13 @@ $('body').keypress(function(e){
       msg = $('#message');
   //console.log("char:", chr, String.fromCharCode(e.charCode));
   if (key === 13) {
-    console.log("sending:", msg.text());
-    avatar.msg = msg.text();
-    pending_update = avatar;
-    msg.text("");
-    if (messageTimer) {
-      clearTimeout(messageTimer);
-    }
-    messageTimer = setTimeout(function () {
-      avatar.msg = "";
-      pending_update = avatar;
-    }, message_time);
+    clearNextMessage = true;
   } else {
-    msg.text(msg.text() + String.fromCharCode(chr));
+    if (clearNextMessage) {
+      clearNextMessage = false;
+      avatar.msg = "";
+    }
+    avatar.msg += String.fromCharCode(chr);
+    pending_update = avatar;
   }
 });
