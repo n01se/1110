@@ -13,6 +13,8 @@ window.requestAnimFrame = (function(){
 var send_poll_interval = 50;
 var swing = 2;
 var maxSpeed = 0.3; // pixels per ms
+var friction = 0.01;
+var pullPower = 0.0003;
 
 var clamp = function(x, min, max) {
   return x>min?(x<max?x:max):min;
@@ -30,7 +32,8 @@ var avatar = $('<img src="avatar01.png" />');
 
 var x = -608;
 var y = -1483;
-var dx, dy;
+var dx = 0;
+var dy = 0;
 var last_update;
 
 var pulling = false;
@@ -98,8 +101,8 @@ var draw = function() {
   for(avatarId in allAvatars) {
     if(avatarId != clientId && allAvatars[avatarId].x) {
       oa = allAvatars[avatarId];
-      ox = oa.x - x + 370 + oa.dx * (now - oa.last_update);
-      oy = oa.y - y + 320 + oa.dy * (now - oa.last_update);
+      ox = Math.round(oa.x - x + 370 + oa.dx * (now - oa.last_update));
+      oy = Math.round(oa.y - y + 320 + oa.dy * (now - oa.last_update));
       ctx.save();
       ctx.translate(ox,oy);
       ctx.rotate(allAvatars[avatarId].dx*swing);
@@ -117,9 +120,22 @@ setInterval(function () {
   }
 }, send_poll_interval);
 
+var applyMousePull = function(d, pull) {
+  d = clamp(d - pull * pullPower, -maxSpeed, maxSpeed);
+  if (d >= friction) {
+    return d - friction;
+  }
+  else if (d <= -friction) {
+    return d + friction;
+  }
+  else {
+    return 0;
+  }
+};
+
 var pull = function() {
-  dx = clamp(-mousepull.x / 1000.0, -maxSpeed, maxSpeed);
-  dy = clamp(-mousepull.y / 1000.0, -maxSpeed, maxSpeed);
+  dx = applyMousePull(dx, mousepull.x);
+  dy = applyMousePull(dy, mousepull.y);
   pending_update = {x: x, y: y, dx: dx, dy: dy};
   load_images();
 };
