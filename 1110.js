@@ -92,21 +92,25 @@ var draw = function() {
     }
   });
 
+  ctx.fillStyle = "rgb(0,0,0)";
+  ctx.font = "10pt Comic Sans, Arial";
   ctx.save();
   ctx.translate(370,320);
   ctx.rotate(dx*swing);
   ctx.drawImage(avatar[0],0,0);
+  if(clientId) ctx.fillText(clientId,0,70);
   ctx.restore();
 
   for(avatarId in allAvatars) {
-    if(avatarId != clientId && allAvatars[avatarId].x) {
-      oa = allAvatars[avatarId];
+    oa = allAvatars[avatarId];
+    if(avatarId != clientId && oa.last_update) {
       ox = Math.round(oa.x - x + 370 + oa.dx * (now - oa.last_update));
       oy = Math.round(oa.y - y + 320 + oa.dy * (now - oa.last_update));
       ctx.save();
       ctx.translate(ox,oy);
       ctx.rotate(allAvatars[avatarId].dx*swing);
       ctx.drawImage(avatar[0],0,0);
+      ctx.fillText(avatarId,0,70);
       ctx.restore();
       //console.log("client", avatarId, "at", ox, oy);
     }
