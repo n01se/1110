@@ -1,6 +1,5 @@
 var send_poll_interval = 50;
 var swing = 2;
-var maxSpeed = 0.3; // pixels per ms
 var friction = 0.01;
 var pullPower = 0.0003;
 var message_time = 15000;
@@ -23,11 +22,151 @@ var canvas_center = {x: Math.round(canvas_size.x/2),
 var name = "1n1w";
 var images = {};
 
-var avatar_img = loadImage("images/avatar01.png");
-var avatar_width = 26;
-var avatar_height = 57;
+var applyMousePull = function(d, pull, maxSpeed) {
+  d = clamp(d - pull * pullPower, -maxSpeed, maxSpeed);
+  if (d >= friction) {
+    return d - friction;
+  }
+  else if (d <= -friction) {
+    return d + friction;
+  }
+  else {
+    return 0;
+  }
+};
+
+var skins = {
+  ghost: {
+    imgs: { left: loadImage("images/ghost-left.png"),
+            right: loadImage("images/ghost-right.png") },
+    width: 50,
+    height: 57,
+    maxSpeed: 0.1, // pixels per ms
+    draw: function (skin, avatar, ox, oy, dx, id, msg) {
+      var x = canvas_center.x + ox, y = canvas_center.y + oy;
+      // Only draw if on-screen
+      if (x > -60 && y > -60 &&
+	  x < (canvas_size.x+60) && y < (canvas_size.y+60)) {
+	ctx.save();
+	ctx.fillStyle = "rgb(128,128,128)";
+	ctx.translate(x, y);
+	if(msg) {
+	  ctx.fillText(msg,-(ctx.measureText(msg).width/2),-10);
+	}
+	ctx.save();
+        ctx.scale(0.7, 0.7);
+	ctx.drawImage((avatar.last_dx||dx)<0?skin.imgs.left:skin.imgs.right, -skin.width/2, -5);
+	ctx.restore();
+	if(id) {
+	  ctx.fillText(id,-(ctx.measureText(id).width/2),50);
+	}
+	ctx.restore();
+      }
+    },
+    update: function(skin, now) {
+      avatar.dx = applyMousePull(avatar.dx, mousepull.x, skin.maxSpeed);
+      avatar.dy = applyMousePull(avatar.dy, mousepull.y, skin.maxSpeed);
+
+      avatar.last_update = avatar.last_update || now;
+      var dx = avatar.dx * (now - avatar.last_update),
+	  dy = avatar.dy * (now - avatar.last_update);
+
+      avatar.x += dx;
+      avatar.y += dy;
+      if(dx != 0) {
+        avatar.last_dx = dx;
+      }
+      avatar.last_update = now;
+      pending_update = avatar;
+    }
+  },
+  sticky: {
+    img: loadImage("images/avatar01.png"),
+    width: 26,
+    height: 57,
+    maxSpeed: 0.3,
+    draw: function (skin, avatar, ox, oy, dx, id, msg) {
+      var x = canvas_center.x + ox, y = canvas_center.y + oy;
+      // Only draw if on-screen
+      if (x > -60 && y > -60 &&
+	  x < (canvas_size.x+60) && y < (canvas_size.y+60)) {
+	ctx.save();
+	ctx.translate(x, y);
+	if(msg) {
+	  ctx.fillText(msg,-(ctx.measureText(msg).width/2),-10);
+	}
+	ctx.rotate(dx*swing);
+	ctx.drawImage(skin.img,-skin.width/2,-5);
+	if(id) {
+	  ctx.fillText(id,-(ctx.measureText(id).width/2),70);
+	}
+	ctx.restore();
+      }
+    },
+    update: function(skin, now) {
+      avatar.dx = applyMousePull(avatar.dx, mousepull.x, skin.maxSpeed);
+      avatar.dy = applyMousePull(avatar.dy, mousepull.y, skin.maxSpeed) + (avatar.y < 1000 ? -0.008 : 0);
+      pending_update = avatar;
+
+      avatar.last_update = avatar.last_update || now;
+      var dx = avatar.dx * (now - avatar.last_update),
+	  dy = avatar.dy * (now - avatar.last_update);
+
+      // Collision detection
+      if (dx || dy) {
+
+    //    sctx.drawImage(viewport, canvas_center.x + dx, canvas_center.y + dy,
+    //                             skin.width, skin.height, 0, 0,
+    //                             260, 570);
+	var ax = canvas_center.x+7-(skin.width/2),
+	    ay = canvas_center.y+2,
+	    aw = skin.width-14, //-skin.width/2,
+	    ah = skin.height-12;
+
+	var xDensity1 = getDensity(ax, ay, aw, ah);
+	var yDensity1 = getDensity(ax, ay, aw, ah);
+	var xDensity2 = getDensity(ax+dx, ay, aw, ah);
+	var yDensity2 = getDensity(ax, ay+dy, aw, ah);
+
+	/*
+	// Show the bounding boxes for collision detection
+	ctx.strokeStyle = "rgb(255,128,128)";
+	ctx.strokeRect(ax, ay, aw, ah);
+	ctx.strokeStyle = "rgb(128,255,128)";
+	ctx.strokeRect(ax+dx, ay, aw, ah);
+	ctx.strokeStyle = "rgb(128,128,255)";
+	ctx.strokeRect(ax, ay+dy, aw, ah);
+	*/
+
+	if (xDensity2 > 0.10 && xDensity1 < xDensity2) {
+	  avatar.dx = -avatar.dx * collide_bounce;
+	  dx = -dx * collide_bounce;
+	}
+	if (xDensity2 > 0.10 && yDensity1 < yDensity2) {
+	  avatar.dy = -avatar.dy * collide_bounce;
+	  dy = -dy * collide_bounce;
+	}
+      }
+
+      avatar.x += dx;
+      avatar.y += dy;
+      avatar.last_update = now;
+    }
+  }
+};
+
+function drawAvatar(avatar, x, y, id) {
+  var skin = skins[avatar.skin || "sticky"];
+  skin.draw(skin, avatar, x, y, avatar.dx, id, avatar.msg);
+}
+
+function updateAvatar(now) {
+  var skin = skins[avatar.skin || "sticky"];
+  skin.update(skin, now);
+}
 
 var avatar = {
+  skin: (Math.random()<0.5?"ghost":"sticky"),
   x : 11659,
   //y : -1294,
   y : -1645,
@@ -56,7 +195,7 @@ var for_tiles = function(f) {
   }
 };
 
-var load_images = function() {
+var load_tiles = function() {
   for_tiles(function(tx, ty, name) {
     if( !images[name] ) {
       url = 'images/'+name+'.png';
@@ -65,25 +204,6 @@ var load_images = function() {
       });
     }
   });
-};
-
-var drawAvatar = function (ox, oy, dx, id, msg) {
-  var x = canvas_center.x + ox, y = canvas_center.y + oy;
-  // Only draw if on-screen
-  if (x > -60 && y > -60 &&
-      x < (canvas_size.x+60) && y < (canvas_size.y+60)) {
-    ctx.save();
-    ctx.translate(x, y);
-    if(msg) {
-      ctx.fillText(msg,-(ctx.measureText(msg).width/2),-10);
-    }
-    ctx.rotate(dx*swing);
-    ctx.drawImage(avatar_img,-avatar_width/2,-5);
-    if(id) {
-      ctx.fillText(id,-(ctx.measureText(id).width/2),70);
-    }
-    ctx.restore();
-  }
 };
 
 var getDensity = function (x, y, w, h, skip) {
@@ -105,6 +225,7 @@ var draw = function() {
   ctx.fillRect(0, 0, canvas_size.x, canvas_size.y);
 
   // Draw the background
+  load_tiles();
   var ox, oy, oa;
   for_tiles(function(tx, ty, name) {
     if( images[name] && images[name].isLoaded) {
@@ -120,51 +241,8 @@ var draw = function() {
   ctx.fillStyle = "rgb(0,0,0)";
   ctx.font = "10pt Comic Sans, Arial";
 
-  // Draw our avatar
-  avatar.last_update = avatar.last_update || now;
-  var dx = avatar.dx * (now - avatar.last_update),
-      dy = avatar.dy * (now - avatar.last_update);
-
-  // Collision detection
-  if (dx || dy) {
-
-//    sctx.drawImage(viewport, canvas_center.x + dx, canvas_center.y + dy,
-//                             avatar_width, avatar_height, 0, 0,
-//                             260, 570);
-    var ax = canvas_center.x+7-(avatar_width/2),
-        ay = canvas_center.y+2,
-        aw = avatar_width-14, //-avatar_width/2,
-	ah = avatar_height-12;
-
-    var xDensity1 = getDensity(ax, ay, aw, ah);
-    var yDensity1 = getDensity(ax, ay, aw, ah);
-    var xDensity2 = getDensity(ax+dx, ay, aw, ah);
-    var yDensity2 = getDensity(ax, ay+dy, aw, ah);
-
-    /*
-    // Show the bounding boxes for collision detection
-    ctx.strokeStyle = "rgb(255,128,128)";
-    ctx.strokeRect(ax, ay, aw, ah);
-    ctx.strokeStyle = "rgb(128,255,128)";
-    ctx.strokeRect(ax+dx, ay, aw, ah);
-    ctx.strokeStyle = "rgb(128,128,255)";
-    ctx.strokeRect(ax, ay+dy, aw, ah);
-    */
-
-    if (xDensity2 > 0.10 && xDensity1 < xDensity2) {
-      avatar.dx = -avatar.dx * collide_bounce;
-      dx = -dx * collide_bounce;
-    }
-    if (xDensity2 > 0.10 && yDensity1 < yDensity2) {
-      avatar.dy = -avatar.dy * collide_bounce;
-      dy = -dy * collide_bounce;
-    }
-  }
-
-  avatar.x += dx;
-  avatar.y += dy;
-  avatar.last_update = now;
-  drawAvatar(0, 0, avatar.dx, clientId, avatar.msg);
+  updateAvatar(now);
+  drawAvatar(avatar, 0, 0, clientId);
 
   // Draw the other avatars
   for(avatarId in allAvatars) {
@@ -172,7 +250,7 @@ var draw = function() {
     if(avatarId != clientId && oa.last_update) {
       ox = Math.round(oa.x - avatar.x + oa.dx * (now - oa.last_update));
       oy = Math.round(oa.y - avatar.y + oa.dy * (now - oa.last_update));
-      drawAvatar(ox, oy, oa.dx, avatarId, oa.msg);
+      drawAvatar(oa, ox, oy, avatarId);
       //console.log("client", avatarId, "at", ox, oy);
     }
   }
@@ -185,34 +263,13 @@ setInterval(function () {
   }
 }, send_poll_interval);
 
-var applyMousePull = function(d, pull) {
-  d = clamp(d - pull * pullPower, -maxSpeed, maxSpeed);
-  if (d >= friction) {
-    return d - friction;
-  }
-  else if (d <= -friction) {
-    return d + friction;
-  }
-  else {
-    return 0;
-  }
-};
-
-var pull = function() {
-  avatar.dx = applyMousePull(avatar.dx, mousepull.x);
-  avatar.dy = applyMousePull(avatar.dy, mousepull.y);
-  pending_update = avatar;
-  load_images();
-};
-
 var animate = function() {
-  pull();
   draw();
   requestAnimFrame(animate);
 };
 
 window.addEventListener('load', function () {
-  load_images();
+  load_tiles();
   animate();
 });
 
@@ -220,6 +277,16 @@ $('#viewport').mousedown(function(e){
   pulling = true;
   mousepull = {x: (20+canvas_center.x)-e.clientX,
                y: (20+canvas_center.y)-e.clientY};
+  if(e.clientX < canvas_center.x+30 &&
+     e.clientX > canvas_center.x-10 &&
+     e.clientY < canvas_center.y+60 &&
+     e.clientY > canvas_center.y+0)
+  {
+    var slist = Object.keys(skins)
+    avatar.skin = slist[(slist.indexOf(avatar.skin)+1)%slist.length];
+    //avatar.skin = (Math.random()<0.5?"ghost":"sticky");
+    pending_update = avatar;
+  }
 }).mousemove(function(e){
   if(pulling) {
     mousepull = {x: (20+canvas_center.x)-e.clientX,
