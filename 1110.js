@@ -35,6 +35,12 @@ var applyMousePull = function(d, pull, maxSpeed) {
   }
 };
 
+var centerText = function(text, y) {
+  if(text) {
+    ctx.fillText(text,-(ctx.measureText(text).width/2),y);
+  }
+}
+
 var skins = {
   ghost: {
     imgs: { left: loadImage("images/ghost-left.png"),
@@ -50,16 +56,12 @@ var skins = {
 	ctx.save();
 	ctx.fillStyle = "rgb(128,128,128)";
 	ctx.translate(x, y);
-	if(msg) {
-	  ctx.fillText(msg,-(ctx.measureText(msg).width/2),-10);
-	}
+	centerText(avatar.msg, -10);
+	centerText(avatar.nick || id, 50);
 	ctx.save();
         ctx.scale(0.7, 0.7);
 	ctx.drawImage((avatar.last_dx||dx)<0?skin.imgs.left:skin.imgs.right, -skin.width/2, -5);
 	ctx.restore();
-	if(id) {
-	  ctx.fillText(id,-(ctx.measureText(id).width/2),50);
-	}
 	ctx.restore();
       }
     },
@@ -92,20 +94,16 @@ var skins = {
 	  x < (canvas_size.x+60) && y < (canvas_size.y+60)) {
 	ctx.save();
 	ctx.translate(x, y);
-	if(msg) {
-	  ctx.fillText(msg,-(ctx.measureText(msg).width/2),-10);
-	}
+	centerText(avatar.msg, -10);
 	ctx.rotate(dx*swing);
 	ctx.drawImage(skin.img,-skin.width/2,-5);
-	if(id) {
-	  ctx.fillText(id,-(ctx.measureText(id).width/2),70);
-	}
+	centerText(avatar.nick || id, 70);
 	ctx.restore();
       }
     },
     update: function(skin, now) {
       avatar.dx = applyMousePull(avatar.dx, mousepull.x, skin.maxSpeed);
-      avatar.dy = applyMousePull(avatar.dy, mousepull.y, skin.maxSpeed) + (avatar.y < 1000 ? -0.008 : 0);
+      avatar.dy = applyMousePull(avatar.dy, mousepull.y, skin.maxSpeed) + (avatar.y > -25000 ? -0.008 : 0);
       pending_update = avatar;
 
       avatar.last_update = avatar.last_update || now;
@@ -159,7 +157,7 @@ function drawAvatar(avatar, ox, oy, id) {
   var skin = skins[avatar.skin || "sticky"];
   var skinTime = (avatar.sent || new Date()) - (avatar.skinUpdate || 0);
   if(skinTime > 200) {
-    skin.draw(skin, avatar, ox, oy, avatar.dx, id, avatar.msg);
+    skin.draw(skin, avatar, ox, oy, avatar.dx, id);
   }
   if(skinTime < 300) {
     var x = canvas_center.x + ox, y = canvas_center.y + oy;
@@ -354,6 +352,11 @@ $('body').keypress(function(e){
   //console.log("char:", chr, String.fromCharCode(e.charCode));
   if (key === 13) {
     clearNextMessage = true;
+    var m = /^i am (.*)/i.exec(avatar.msg);
+    if(m) {
+      avatar.nick = m[1];
+      pending_update = avatar;
+    }
   } else {
     if (clearNextMessage) {
       clearNextMessage = false;
