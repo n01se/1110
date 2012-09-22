@@ -2,7 +2,8 @@
 
 "use strict";
 
-var WebSocketServer = require('ws').Server,
+var maxClients = 20,
+    WebSocketServer = require('ws').Server,
     wss = new WebSocketServer( {host: '0.0.0.0', port: 8080}),
     clients = {}, clientData = {}, nextId = 1;
 
@@ -27,11 +28,20 @@ function sendAll (data) {
 }
 
 wss.on('connection', function(client) {
+    var numClients = Object.keys(clients).length+1;
+
+    if (numClients > maxClients) {
+        client.close(1008, "Too many clients, try again later");
+        return;
+    }
+
     var clientId = nextId;
     nextId++;
+  
     clients[clientId] = client;
     clientData[clientId] = {};
     console.log("New client ID: " + clientId);
+    console.log("Current number of clients: " + numClients);
 
     sendOne(clientId, {"id": clientId});
     sendAll({"all": clientData});
@@ -40,6 +50,7 @@ wss.on('connection', function(client) {
         console.warn("Client ID " + clientId + " disconnected");
         delete clients[clientId];
         delete clientData[clientId];
+        console.log("Current number of clients: " + Object.keys(clients).length);
         sendAll({"delete": clientId});
     });
 

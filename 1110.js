@@ -259,7 +259,6 @@ var draw = function() {
   ctx.font = "10pt Walter Turncoat, Comic Sans, Arial";
 
   updateAvatar(now);
-  drawAvatar(avatar, 0, 0, clientId);
 
   // Draw the other avatars
   for(avatarId in allAvatars) {
@@ -271,6 +270,12 @@ var draw = function() {
       //console.log("client", avatarId, "at", ox, oy);
     }
   }
+
+  if(! connected) {
+    ctx.fillStyle = "rgba(255,255,255,0.4)";
+    ctx.fillRect(0, 0, canvas_size.x, canvas_size.y);
+  }
+  drawAvatar(avatar, 0, 0, clientId);
 };
 
 setInterval(function () {
