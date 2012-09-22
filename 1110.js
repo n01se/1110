@@ -155,9 +155,28 @@ var skins = {
   }
 };
 
-function drawAvatar(avatar, x, y, id) {
+function drawAvatar(avatar, ox, oy, id) {
   var skin = skins[avatar.skin || "sticky"];
-  skin.draw(skin, avatar, x, y, avatar.dx, id, avatar.msg);
+  var skinTime = (avatar.sent || new Date()) - (avatar.skinUpdate || 0);
+  if(skinTime > 200) {
+    skin.draw(skin, avatar, ox, oy, avatar.dx, id, avatar.msg);
+  }
+  if(skinTime < 300) {
+    var x = canvas_center.x + ox, y = canvas_center.y + oy;
+    // Only draw if on-screen
+    if (x > -60 && y > -60 &&
+	x < (canvas_size.x+60) && y < (canvas_size.y+60)) {
+      ctx.save();
+      ctx.fillStyle = "rgb(128,128,128)";
+      ctx.translate(x+7, y+20);
+      var r = skinTime / 30;
+      for(i = 0; i < 8; ++i) {
+	ctx.fillRect(r,0,r*2,1);
+	ctx.rotate(3.1415/4);
+      }
+      ctx.restore();
+    }
+  }
 }
 
 function updateAvatar(now) {
@@ -166,10 +185,10 @@ function updateAvatar(now) {
 }
 
 var avatar = {
-  skin: (Math.random()<0.5?"ghost":"sticky"),
-  x : 11659,
-  //y : -1294,
-  y : -1645,
+  skin: "sticky",
+  //x : 11659, y : -1645,  // marioland
+  x : -595,
+  y : -1494,
   dx : 0,
   dy : 0,
   msg : "",
@@ -258,6 +277,7 @@ var draw = function() {
 
 setInterval(function () {
   if (window.ws && ws.readyState && pending_update) {
+    pending_update.sent = (new Date()).getTime();
     ws.send(JSON.stringify(pending_update));
     pending_update = null;
   }
@@ -284,7 +304,7 @@ $('#viewport').mousedown(function(e){
   {
     var slist = Object.keys(skins)
     avatar.skin = slist[(slist.indexOf(avatar.skin)+1)%slist.length];
-    //avatar.skin = (Math.random()<0.5?"ghost":"sticky");
+    avatar.skinUpdate = (new Date()).getTime();
     pending_update = avatar;
   }
 }).mousemove(function(e){
