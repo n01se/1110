@@ -256,7 +256,7 @@ var draw = function() {
   });
 
   ctx.fillStyle = "rgb(0,0,0)";
-  ctx.font = "10pt Comic Sans, Arial";
+  ctx.font = "10pt Walter Turncoat, Comic Sans, Arial";
 
   updateAvatar(now);
   drawAvatar(avatar, 0, 0, clientId);
