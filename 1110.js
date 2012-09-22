@@ -14,12 +14,11 @@ var size=[14,48,25,33];
 
 var viewport = $('#viewport')[0];
 var ctx = viewport.getContext("2d");
-//var sctx = $('#scanner')[0].getContext("2d");
-//var s2ctx = $('#scanner2')[0].getContext("2d");
 var canvas_size = {x: $('#viewport').width(), y: $('#viewport').height()};
 var canvas_center = {x: Math.round(canvas_size.x/2),
                      y: Math.round(canvas_size.y/2)};
-var name = "1n1w";
+var scanner = $('<canvas width="' + canvas_size.x + '" height="' + canvas_size.y + '"/>');
+var sctx = scanner[0].getContext("2d");
 var images = {};
 
 var applyMousePull = function(d, pull, maxSpeed) {
@@ -33,6 +32,20 @@ var applyMousePull = function(d, pull, maxSpeed) {
   else {
     return 0;
   }
+};
+
+var drawTiles = function(ctx) {
+  var ox, oy, oa;
+  for_tiles(function(tx, ty, name) {
+    if( images[name] && images[name].isLoaded) {
+      ox = tx*tilesize-Math.round(avatar.x)-canvas_center.x;
+      oy = ty*tilesize-Math.round(avatar.y)-canvas_center.y;
+      if( ox < canvas_size.x && oy < canvas_size.y &&
+          ox+tilesize > 0 && oy+tilesize > 0 ) {
+        ctx.drawImage(images[name], ox, oy);
+      }
+    }
+  });
 };
 
 var centerText = function(text, y) {
@@ -113,18 +126,16 @@ var skins = {
       // Collision detection
       if (dx || dy) {
 
-    //    sctx.drawImage(viewport, canvas_center.x + dx, canvas_center.y + dy,
-    //                             skin.width, skin.height, 0, 0,
-    //                             260, 570);
+        drawTiles(sctx);
 	var ax = canvas_center.x+7-(skin.width/2),
 	    ay = canvas_center.y+2,
 	    aw = skin.width-14, //-skin.width/2,
 	    ah = skin.height-12;
 
-	var xDensity1 = getDensity(ax, ay, aw, ah);
-	var yDensity1 = getDensity(ax, ay, aw, ah);
-	var xDensity2 = getDensity(ax+dx, ay, aw, ah);
-	var yDensity2 = getDensity(ax, ay+dy, aw, ah);
+	var xDensity1 = getDensity(sctx, ax, ay, aw, ah);
+	var yDensity1 = getDensity(sctx, ax, ay, aw, ah);
+	var xDensity2 = getDensity(sctx, ax+dx, ay, aw, ah);
+	var yDensity2 = getDensity(sctx, ax, ay+dy, aw, ah);
 
 	/*
 	// Show the bounding boxes for collision detection
@@ -223,19 +234,17 @@ var load_tiles = function() {
   });
 };
 
-var getDensity = function (x, y, w, h, skip) {
+var getDensity = function (ctx, x, y, w, h, skip) {
   var data = ctx.getImageData(x, y, w, h).data,
       cnt = 0, skip = (skip || 4);
   for (var i=0; i< data.length; i+=skip) {
     cnt += data[i];
   }
-  //s2ctx.drawImage(viewport, x, y, w, h, 0, 0, 40, 40);
   //console.log("cnt:", cnt, data.length);
   return (255-((skip*cnt)/data.length)) / 255;
 };
 
 var draw = function() {
-  //console.log('draw!');
   var now = (new Date()).getTime();
 
   ctx.fillStyle = avatar.y>-1024?"rgb(0,0,0)":"rgb(255,255,255)";
@@ -243,29 +252,20 @@ var draw = function() {
 
   // Draw the background
   load_tiles();
-  var ox, oy, oa;
-  for_tiles(function(tx, ty, name) {
-    if( images[name] && images[name].isLoaded) {
-      ox = tx*tilesize-Math.round(avatar.x)-canvas_center.x;
-      oy = ty*tilesize-Math.round(avatar.y)-canvas_center.y;
-      if( ox < canvas_size.x && oy < canvas_size.y &&
-          ox+tilesize > 0 && oy+tilesize > 0 ) {
-        ctx.drawImage(images[name], ox, oy);
-      }
-    }
-  });
 
   ctx.fillStyle = "rgb(0,0,0)";
   ctx.font = "10pt Walter Turncoat, Comic Sans, Arial";
 
   updateAvatar(now);
 
+  drawTiles(ctx);
+
   // Draw the other avatars
   for(avatarId in allAvatars) {
     oa = allAvatars[avatarId];
     if(avatarId != clientId && oa.last_update) {
-      ox = Math.round(oa.x - avatar.x + oa.dx * (now - oa.last_update));
-      oy = Math.round(oa.y - avatar.y + oa.dy * (now - oa.last_update));
+      ox = oa.x - Math.round(avatar.x) + oa.dx * (now - oa.last_update);
+      oy = oa.y - Math.round(avatar.y) + oa.dy * (now - oa.last_update);
       drawAvatar(oa, ox, oy, avatarId);
       //console.log("client", avatarId, "at", ox, oy);
     }
@@ -314,7 +314,8 @@ $('#viewport').mousedown(function(e){
     avatar.skinUpdate = (new Date()).getTime();
     pending_update = avatar;
   }
-}).mousemove(function(e){
+});
+$('body').mousemove(function(e){
   if(pulling) {
     var offset = $('#viewport').offset();
     var x = e.clientX - offset.left;
@@ -322,8 +323,7 @@ $('#viewport').mousedown(function(e){
     mousepull = {x: (20+canvas_center.x)-x,
                  y: (20+canvas_center.y)-y};
   }
-});
-$('body').mouseup(function(e){
+}).mouseup(function(e){
   pulling = false;
   mousepull = {x:0, y:0};
 });
