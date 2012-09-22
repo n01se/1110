@@ -19,7 +19,8 @@ var canvas_center = {x: Math.round(canvas_size.x/2),
                      y: Math.round(canvas_size.y/2)};
 var scanner = $('<canvas width="' + canvas_size.x + '" height="' + canvas_size.y + '"/>');
 var sctx = scanner[0].getContext("2d");
-var images = {};
+var bg_tiles = {};
+var scan_tiles = {};
 
 var applyMousePull = function(d, pull, maxSpeed) {
   d = clamp(d - pull * pullPower, -maxSpeed, maxSpeed);
@@ -34,15 +35,15 @@ var applyMousePull = function(d, pull, maxSpeed) {
   }
 };
 
-var drawTiles = function(ctx) {
+var drawTiles = function(ctx, tileset) {
   var ox, oy, oa;
   for_tiles(function(tx, ty, name) {
-    if( images[name] && images[name].isLoaded) {
+    if( tileset[name] && tileset[name].isLoaded) {
       ox = tx*tilesize-Math.round(avatar.x)-canvas_center.x;
       oy = ty*tilesize-Math.round(avatar.y)-canvas_center.y;
       if( ox < canvas_size.x && oy < canvas_size.y &&
           ox+tilesize > 0 && oy+tilesize > 0 ) {
-        ctx.drawImage(images[name], ox, oy);
+        ctx.drawImage(tileset[name], ox, oy);
       }
     }
   });
@@ -126,7 +127,7 @@ var skins = {
       // Collision detection
       if (dx || dy) {
 
-        drawTiles(sctx);
+        drawTiles(sctx, scan_tiles);
 	var ax = canvas_center.x+7-(skin.width/2),
 	    ay = canvas_center.y+2,
 	    aw = skin.width-14, //-skin.width/2,
@@ -225,11 +226,16 @@ var for_tiles = function(f) {
 
 var load_tiles = function() {
   for_tiles(function(tx, ty, name) {
-    if( !images[name] ) {
-      url = 'images/'+name+'.png';
-      images[name] = loadImage(url, function () {
-        images[name].isLoaded = true;
+    if( !bg_tiles[name] ) {
+      var bg_tile = loadImage('images/'+name+'.png', function () {
+	this.isLoaded = true;
       });
+      var scan_tile = loadImage('images/'+name+'-scan.png', function () {
+        this.isLoaded = true;
+      });
+      bg_tiles[name] = bg_tile;
+      scan_tiles[name] = scan_tile;
+      scan_tile.onerror = function() { scan_tiles[name] = bg_tile; };
     }
   });
 };
@@ -258,7 +264,7 @@ var draw = function() {
 
   updateAvatar(now);
 
-  drawTiles(ctx);
+  drawTiles(ctx, bg_tiles);
 
   // Draw the other avatars
   for(avatarId in allAvatars) {
