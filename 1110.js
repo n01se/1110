@@ -292,13 +292,17 @@ window.addEventListener('load', function () {
 });
 
 $('#viewport').mousedown(function(e){
+  var offset = $('#viewport').offset();
+  var x = e.clientX - offset.left;
+  var y = e.clientY - offset.top;
+  e.preventDefault();
   pulling = true;
-  mousepull = {x: (20+canvas_center.x)-e.clientX,
-               y: (20+canvas_center.y)-e.clientY};
-  if(e.clientX < canvas_center.x+30 &&
-     e.clientX > canvas_center.x-10 &&
-     e.clientY < canvas_center.y+60 &&
-     e.clientY > canvas_center.y+0)
+  mousepull = {x: (20+canvas_center.x)-x,
+               y: (20+canvas_center.y)-y};
+  if(x < canvas_center.x+30 &&
+     x > canvas_center.x-10 &&
+     y < canvas_center.y+60 &&
+     y > canvas_center.y+0)
   {
     var slist = Object.keys(skins)
     avatar.skin = slist[(slist.indexOf(avatar.skin)+1)%slist.length];
@@ -307,8 +311,11 @@ $('#viewport').mousedown(function(e){
   }
 }).mousemove(function(e){
   if(pulling) {
-    mousepull = {x: (20+canvas_center.x)-e.clientX,
-                 y: (20+canvas_center.y)-e.clientY};
+    var offset = $('#viewport').offset();
+    var x = e.clientX - offset.left;
+    var y = e.clientY - offset.top;
+    mousepull = {x: (20+canvas_center.x)-x,
+                 y: (20+canvas_center.y)-y};
   }
 });
 $('body').mouseup(function(e){
