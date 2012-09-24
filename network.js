@@ -1,5 +1,5 @@
 var ws, clientId, allAvatars, connected,
-    serverURI = "ws://1110.n01se.net:8080";
+    serverURI = "ws://" + window.location.hostname + ":8080";
 
 window.addEventListener('load', function () {
   console.log("Connecting to server:" + serverURI);
@@ -42,7 +42,8 @@ window.addEventListener('load', function () {
       if (e.reason) {
         msg.innerHTML += ": " + e.reason;
       }
-      msg.innerHTML += "<br>You can also run your own server. Get the code here: TBD."
+      msg.innerHTML += "<br>You can also run your own server. ";
+      msg.innerHTML += "Get the code <a href='https://github.com/n01se/1110'>on github</a>."
     } else {
       msg.innerHTML = "Could not connect to server";
     }

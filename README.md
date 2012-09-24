@@ -1,38 +1,49 @@
-# Build/dev notes
+# I just didn't expect it to be so big
 
-## tmux for development
+A multi-user homage to [xkcd 1110](http://xkcd.com/1110/).
 
-- Download and unpack libevent and tmux sources
+Your browser must support WebSockets.
 
-- Configure and make libevent
-    ./configure
-    make
 
-- Configure and make tmux like this:
-    ./configure LIBEVENT_CFLAGS="-I/home/xkcd1110/libevent-2.0.20-stable/ -I/home/xkcd1110/libevent-2.0.20-stable/include" LIBEVENT_LIBS="/home/xkcd1110/libevent-2.0.20-stable/.libs/libevent.a"
-    make
-
-- Copy tmux to bin dir
-    cp tmux ~/bin/
-
-## Node and ws module
+## Running your own server
 
 - Download and unpack node
 
 - Configure and build node
+
+    ```
     ./configure
     make
+    ```
 
 - Link node executable to bin dir
-    ln -sf $(readlink node) ~/bin/node
+
+    ```ln -sf $(readlink node) ~/bin/node```
 
 - Create npm script in ~/bin
-    --------------------------
+
+    ```
     #!/bin/sh
     node "$HOME/node-v0.8.9/deps/npm/bin/npm-cli.js" "$@"
-    --------------------------
-
+    ```
 
 - In the source directory install ws module and dependencies (this will
   download and install ws and dependencies in node_modules/ sub-directory)
+
+    ```
     npm install ws
+    ```
+
+- Run a normal web server to server the web files.
+
+- Start the Node server (on port 8080)
+
+    ```
+    ./server.js
+    ```
+
+- Load the page. It will automatically connect to the same hostname at port
+  8080.
+
+- To change the port you must change both `server.js` (server) and `network.js`
+  (client).
