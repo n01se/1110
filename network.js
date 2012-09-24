@@ -18,8 +18,8 @@ window.addEventListener('load', function () {
       clientId = msg.id;
     } else if (msg.all) {
       allAvatars = msg.all;
-    } else if (msg.delete) {
-      delete allAvatars[msg.delete];
+    } else if (msg["delete"]) {
+      delete allAvatars[msg["delete"]];
     } else if (msg.change) {
         for (var id in msg.change) {
             allAvatars[id] = msg.change[id];
@@ -31,11 +31,20 @@ window.addEventListener('load', function () {
   };
   ws.onerror = function (e) {
     console.log("WebSocket error:", e);
-    alert("WebSocket error");
   };
   ws.onclose = function (e) {
+    var msg = $('#message')[0];
+    msg.style.background = "#fe8";
     connected = false;
-    console.log("WebSocket connection closed:", e, e);
-    alert("Disconnected from server: " + e.reason + "(" + e.code + ")");
+    //console.log("WebSocket connection closed:", e, e);
+    if (e.code === 1008 || e.code === 1009) {
+      msg.innerHTML = "Disconnected from server"
+      if (e.reason) {
+        msg.innerHTML += ": " + e.reason;
+      }
+      msg.innerHTML += "<br>You can also run your own server. Get the code here: TBD."
+    } else {
+      msg.innerHTML = "Could not connect to server";
+    }
   };
 });
