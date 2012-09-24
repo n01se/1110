@@ -148,11 +148,11 @@ var skins = {
 	ctx.strokeRect(ax, ay+dy, aw, ah);
 	*/
 
-	if (xDensity2 > 0.10 && xDensity1 < xDensity2) {
+	if (xDensity2 > (0.40 * (ah/(aw+ah))) && xDensity1 < xDensity2) {
 	  avatar.dx = -avatar.dx * collide_bounce;
 	  dx = -dx * collide_bounce;
 	}
-	if (xDensity2 > 0.10 && yDensity1 < yDensity2) {
+	if (xDensity2 > (0.40 * (aw/(ah+aw))) && yDensity1 < yDensity2) {
 	  avatar.dy = -avatar.dy * collide_bounce;
 	  dy = -dy * collide_bounce;
 	}
