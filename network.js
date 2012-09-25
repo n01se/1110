@@ -45,7 +45,7 @@ window.addEventListener('load', function () {
       msg.innerHTML += "<br>You can also run your own server. ";
       msg.innerHTML += "Get the code <a href='https://github.com/n01se/1110'>on github</a>."
     } else {
-      msg.innerHTML = "Could not connect to server";
+      msg.innerHTML = "No connection to server";
     }
   };
 });

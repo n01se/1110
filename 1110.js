@@ -4,6 +4,8 @@ var friction = 0.01;
 var pullPower = 0.0003;
 var message_time = 15000;
 var collide_bounce = 0.0;
+var idleTime1 = 30; // seconds
+var idleTime2 = 15; // seconds
 
 var clamp = function(x, min, max) {
   return x>min?(x<max?x:max):min;
@@ -302,7 +304,39 @@ window.addEventListener('load', function () {
   animate();
 });
 
+var idleTimeout, idleWarning;
+var idle1 = function() {
+  if(connected) {
+      idleWarning = true;
+      $('#message').html("You have been idle for " + idleTime1 + " seconds. To reduce server load,<br>" +
+              "if you don't act within " + idleTime2 + " seconds, you will be disconnected.")
+        .css("background", "red");
+      idleTimeout = setTimeout(idle2, idleTime2 * 1000);
+  }
+};
+var idle2 = function() {
+  if(connected) {
+    idleWarning = false;
+    ws.close();
+  }
+};
+var clearIdle = function() {
+  clearTimeout(idleTimeout);
+  idleTimeout = null;
+  if(idleWarning) {
+    $('#message').html("");
+    idleWarning = false;
+  }
+};
+var restartIdle = function() {
+  if(idleTimeout) clearIdle();
+  idleTimeout = setTimeout(idle1, idleTime1 * 1000);
+};
+restartIdle();
+
+
 $('#viewport').mousedown(function(e){
+  restartIdle();
   var offset = $('#viewport').offset();
   var x = e.clientX - offset.left;
   var y = e.clientY - offset.top;
@@ -323,6 +357,7 @@ $('#viewport').mousedown(function(e){
 });
 $('body').mousemove(function(e){
   if(pulling) {
+    restartIdle();
     var offset = $('#viewport').offset();
     var x = e.clientX - offset.left;
     var y = e.clientY - offset.top;
@@ -330,6 +365,7 @@ $('body').mousemove(function(e){
                  y: (20+canvas_center.y)-y};
   }
 }).mouseup(function(e){
+  restartIdle();
   pulling = false;
   mousepull = {x:0, y:0};
 });
@@ -347,12 +383,14 @@ var messageTimeout = function () {
 };
 
 $(document).keydown(function(e){
+  restartIdle();
   if (e.keyCode === 8) {
     e.preventDefault();
   }
 });
 
 $(document).keyup(function(e){
+  restartIdle();
   var key = e.keyCode,
       msg = $('#message');
   //console.log("key:", e.keyCode);
@@ -371,6 +409,7 @@ $(document).keyup(function(e){
 
 
 $(document).keypress(function(e){
+  restartIdle();
   var key = e.keyCode, chr = e.charCode,
       msg = $('#message');
   //console.log("char:", chr, String.fromCharCode(e.charCode));
