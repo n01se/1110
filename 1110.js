@@ -346,8 +346,13 @@ var messageTimeout = function () {
       pending_update = avatar;
 };
 
+$(document).keydown(function(e){
+  if (e.keyCode === 8) {
+    e.preventDefault();
+  }
+});
 
-$('body').keyup(function(e){
+$(document).keyup(function(e){
   var key = e.keyCode,
       msg = $('#message');
   //console.log("key:", e.keyCode);
@@ -357,14 +362,15 @@ $('body').keyup(function(e){
   }
   messageTimer = setTimeout(messageTimeout, message_time);
 
-  if (key === 8) {
+  if (key === 8 || key === 46) {
     clearNextMessage = false;
     avatar.msg = avatar.msg.substring(0, avatar.msg.length-1);
     pending_update = avatar;
   }
 });
 
-$('body').keypress(function(e){
+
+$(document).keypress(function(e){
   var key = e.keyCode, chr = e.charCode,
       msg = $('#message');
   //console.log("char:", chr, String.fromCharCode(e.charCode));
