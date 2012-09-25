@@ -4,6 +4,8 @@ A multi-user homage to [xkcd 1110](http://xkcd.com/1110/).
 
 Your browser must support WebSockets.
 
+We recorded a [preview](http://www.youtube.com/watch?v=EvLxOVYeo5w).
+
 
 ## Running your own server
 
