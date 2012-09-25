@@ -289,6 +289,7 @@ var draw = function() {
 setInterval(function () {
   if (window.ws && ws.readyState && pending_update) {
     pending_update.sent = (new Date()).getTime();
+    if(!pending_update.skinUpdate) pending_update.skinUpdate = pending_update.sent;
     ws.send(JSON.stringify(pending_update));
     pending_update = null;
   }
