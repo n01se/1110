@@ -6,6 +6,10 @@ Your browser must support WebSockets.
 
 We recorded a [preview](http://www.youtube.com/watch?v=EvLxOVYeo5w).
 
+All images are licensed under a Creative Commons Attribution-NonCommercial 2.5
+License and based on similarly licensed work at
+[xkcd.com](http://xkcd.com/license.html).  Everything else is licensed under
+the [MPL 2.0](http://www.mozilla.org/MPL/2.0/)
 
 ## Running your own server
 
