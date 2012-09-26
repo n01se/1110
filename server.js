@@ -94,7 +94,9 @@ wss.on('connection', function(client) {
             error("failed to parse client " + clientId + " message: " + message);
             return;
         }
-        clientData[clientId] = data;
+        for(var key in data) {
+            clientData[clientId][key] = data[key];
+        }
         var obj = {};
         obj[clientId] = data;
         sendAll(JSON.stringify({"change": obj}));
