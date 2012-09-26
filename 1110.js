@@ -1,14 +1,19 @@
-var send_poll_interval = 50;
+var send_poll_interval = 150;
 var swing = 2;
 var friction = 0.01;
 var pullPower = 0.0003;
 var message_time = 15000;
+var maxMsgLength = 20;
 var collide_bounce = 0.0;
 var idleTime1 = 30; // seconds
 var idleTime2 = 15; // seconds
 
 var clamp = function(x, min, max) {
   return x>min?(x<max?x:max):min;
+};
+
+var roundAt = function(num, places) {
+  return Math.round(num*Math.pow(10,places))/Math.pow(10,places);
 };
 
 var tilesize = 2048;
@@ -82,17 +87,17 @@ var skins = {
       }
     },
     update: function(skin, now) {
-      avatar.dx = applyMousePull(avatar.dx, mousepull.x, skin.maxSpeed);
-      avatar.dy = applyMousePull(avatar.dy, mousepull.y, skin.maxSpeed);
+      avatar.dx = roundAt(applyMousePull(avatar.dx, mousepull.x, skin.maxSpeed), 4);
+      avatar.dy = roundAt(applyMousePull(avatar.dy, mousepull.y, skin.maxSpeed), 4);
 
       avatar.last_update = avatar.last_update || now;
       var dx = avatar.dx * (now - avatar.last_update),
 	  dy = avatar.dy * (now - avatar.last_update);
 
-      avatar.x += dx;
-      avatar.y += dy;
+      avatar.x = roundAt(avatar.x + dx, 1);
+      avatar.y = roundAt(avatar.y + dy, 1);
       if(dx != 0) {
-        avatar.last_dx = dx;
+        avatar.last_dx = roundAt(dx, 3);
       }
       avatar.last_update = now;
       pending_update = avatar;
@@ -118,8 +123,8 @@ var skins = {
       }
     },
     update: function(skin, now) {
-      avatar.dx = applyMousePull(avatar.dx, mousepull.x, skin.maxSpeed);
-      avatar.dy = applyMousePull(avatar.dy, mousepull.y, skin.maxSpeed) + (avatar.y > -25000 ? -0.008 : 0);
+      avatar.dx = roundAt(applyMousePull(avatar.dx, mousepull.x, skin.maxSpeed), 4);
+      avatar.dy = roundAt(applyMousePull(avatar.dy, mousepull.y, skin.maxSpeed) + (avatar.y > -25000 ? -0.008 : 0), 4);
       pending_update = avatar;
 
       avatar.last_update = avatar.last_update || now;
@@ -151,17 +156,17 @@ var skins = {
 	*/
 
 	if (xDensity2 > (0.40 * (ah/(aw+ah))) && xDensity1 < xDensity2) {
-	  avatar.dx = -avatar.dx * collide_bounce;
+	  avatar.dx = roundAt(-avatar.dx * collide_bounce, 4);
 	  dx = -dx * collide_bounce;
 	}
 	if (xDensity2 > (0.40 * (aw/(ah+aw))) && yDensity1 < yDensity2) {
-	  avatar.dy = -avatar.dy * collide_bounce;
+	  avatar.dy = roundAt(-avatar.dy * collide_bounce);
 	  dy = -dy * collide_bounce;
 	}
       }
 
-      avatar.x += dx;
-      avatar.y += dy;
+      avatar.x = roundAt(avatar.x + dx, 1);
+      avatar.y = roundAt(avatar.y + dy, 1);
       avatar.last_update = now;
     }
   }
@@ -290,7 +295,9 @@ setInterval(function () {
   if (window.ws && ws.readyState && pending_update) {
     pending_update.sent = (new Date()).getTime();
     if(!pending_update.skinUpdate) pending_update.skinUpdate = pending_update.sent;
-    ws.send(JSON.stringify(pending_update));
+    var msg = $.extend(false, {}, pending_update);
+    delete msg["last_update"];
+    ws.send(JSON.stringify(msg));
     pending_update = null;
   }
 }, send_poll_interval);
@@ -426,7 +433,9 @@ $(document).keypress(function(e){
       clearNextMessage = false;
       avatar.msg = "";
     }
-    avatar.msg += String.fromCharCode(chr);
+    if (avatar.msg.length < maxMsgLength) {
+      avatar.msg += String.fromCharCode(chr);
+    }
     pending_update = avatar;
   }
 });

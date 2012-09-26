@@ -1,5 +1,6 @@
 var ws, clientId, allAvatars, connected,
-    serverURI = "ws://" + window.location.hostname + ":8080";
+    serverURI = "ws://" + window.location.hostname + ":8080",
+    netDebug = 0;
 
 window.addEventListener('load', function () {
   console.log("Connecting to server:" + serverURI);
@@ -10,7 +11,10 @@ window.addEventListener('load', function () {
     connected = true;
   };
   ws.onmessage = function (e) {
-    //console.log("WebSocket message received: ", e.data);
+    if (netDebug > 0) {
+      console.log("WebSocket message received: ", e.data);
+      netDebug--;
+    }
     connected = true;
     var now = (new Date()).getTime();
     var msg = JSON.parse(e.data);
@@ -42,8 +46,9 @@ window.addEventListener('load', function () {
       if (e.reason) {
         msg.innerHTML += ": " + e.reason;
       }
-      msg.innerHTML += "<br>You can also run your own server. ";
-      msg.innerHTML += "Get the code <a href='https://github.com/n01se/1110'>on github</a>."
+      msg.innerHTML += "<br>You can also run your own server. " +
+          "Get the code <a href='https://github.com/n01se/1110'>on github</a>.<br>" +
+          "Or <a href='http://www.youtube.com/watch?v=EvLxOVYeo5w'>watch a preview</a>";
     } else {
       msg.innerHTML = "No connection to server";
     }
