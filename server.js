@@ -4,10 +4,12 @@
 
 var maxClients = 20,
     maxMsgLength = 500,
+    pushInterval = 75,
     port = process.argv[2] ? parseInt(process.argv[2],10) : 8080,
     WebSocket = require('ws'), WebSocketServer = WebSocket.Server,
     wss = new WebSocketServer( {host: '0.0.0.0', port: port}),
-    clients = {}, clientData = {}, nextId = 1;
+    clients = {}, clientData = {}, nextId = 1,
+    changes = {};
 
 function log(msg) { console.log(Date() + ": " + msg); }
 function warn(msg) { console.warn(Date() + ": " + msg); }
@@ -18,6 +20,7 @@ function removeClient(clientId) {
         warn("Removing Client ID " + clientId);
         delete clients[clientId];
         delete clientData[clientId];
+        delete changes[clientId];
         log("Current number of clients: " + Object.keys(clients).length);
         sendAll(JSON.stringify({"delete": clientId}));
     }
@@ -50,6 +53,13 @@ function tooManyClients(client, clientId) {
          (clientId ? clientId : ""));
     client.close(1008, "Too many clients, try again later");
 }
+
+setInterval(function () {
+  if (Object.keys(changes).length > 0) {
+      sendAll(JSON.stringify({"change": changes}));
+  }
+  changes = {};
+}, pushInterval);
 
 wss.on('connection', function(client) {
     var numClients = Object.keys(clients).length+1;
@@ -94,12 +104,13 @@ wss.on('connection', function(client) {
             error("failed to parse client " + clientId + " message: " + message);
             return;
         }
+        if (!changes[clientId]) {
+            changes[clientId] = {};
+        }
         for(var key in data) {
             clientData[clientId][key] = data[key];
+            changes[clientId][key] = data[key];
         }
-        var obj = {};
-        obj[clientId] = data;
-        sendAll(JSON.stringify({"change": obj}));
     });
 });
 
