@@ -1,6 +1,9 @@
 var ws, clientId, allAvatars, connected,
-    serverURI = "ws://" + window.location.hostname + ":8080",
-    netDebug = 0;
+    serverURI = "ws://" + window.location.hostname + ":8090",
+    netDebug = 5;
+
+// hackernews mitigation:
+serverURI = "ws://ec2-23-22-134-23.compute-1.amazonaws.com:8080"
 
 window.addEventListener('load', function () {
   console.log("Connecting to server:" + serverURI);
@@ -22,12 +25,18 @@ window.addEventListener('load', function () {
       clientId = msg.id;
     } else if (msg.all) {
       allAvatars = msg.all;
+      for (var id in msg.all) {
+        allAvatars[id]._last_update = now;
+      }
     } else if (msg["delete"]) {
       delete allAvatars[msg["delete"]];
     } else if (msg.change) {
         for (var id in msg.change) {
-            allAvatars[id] = msg.change[id];
-            allAvatars[id].last_update = now;
+            $.extend(allAvatars[id], msg.change[id]);
+            allAvatars[id]._last_update = now;
+            if(msg.change[id].skin) {
+              allAvatars[id]._skinUpdate = now;
+            }
         }
     } else {
         console.error("Unrecognized message type: " + msg);
