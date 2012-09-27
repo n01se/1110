@@ -13,7 +13,7 @@ window.requestAnimFrame = (function(){
 
 var loadImage = function(src, callback) {
   var img = document.createElement('img');
-  img.crossOrigin = '';
+  //img.crossOrigin = '';
   img.src = src;
   if (typeof callback !== "undefined") {
     img.onload = callback;
