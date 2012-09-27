@@ -172,6 +172,9 @@ var skins = {
 
 function drawAvatar(avatar, ox, oy, id) {
   var skin = skins[avatar.skin || "sticky"];
+  if (!skin) {
+    return;
+  }
   var skinTime = (new Date()) - (avatar._skinUpdate || 0);
   if(skinTime > 200) {
     skin.draw(skin, avatar, ox, oy, avatar.dx, id);
@@ -196,6 +199,9 @@ function drawAvatar(avatar, ox, oy, id) {
 
 function updateAvatar(now) {
   var skin = skins[avatar.skin || "sticky"];
+  if (!skin) {
+    return;
+  }
   skin.update(skin, now);
 }
 
