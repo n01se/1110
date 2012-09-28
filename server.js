@@ -64,10 +64,12 @@ setInterval(function () {
 
         for(var clientId in changes) {
             var change = changes[clientId];
-            for (var key in change) {
-                 if (key !== "whomp") {
-                     clientData[clientId][key] = change[key];
-                 }
+            if(!change.temp) {
+                for (var key in change) {
+                    if (key !== "whomp") {
+                        clientData[clientId][key] = change[key];
+                    }
+                }
             }
         }
       sendAll(JSON.stringify({"change": changes}));
@@ -146,12 +148,14 @@ function game1110Logic(clientData, changes) {
         var curC = clientData[clientId],
             newC = changes[clientId];
         if (/there'?s no place like home/i.exec(newC.msg)) {
-            changes[clientId] = {
-                whomp: true,
-                x: -594,
-                y: -1284,
-                msg: ""
-            };
+            newC.whomp = true;
+            newC.x = -594;
+            newC.y = -1284;
+            newC.msg = "";
+            changes[clientId] = newC;
+            changes[nextId++] = { skin: 'warp', also: curC.skin,
+                x: curC.x, y: curC.y, temp: true };
+            changes[nextId++] = { skin: 'warp', x: newC.x, y: newC.y, temp: true };
         }
         // Check for warp
         if (newC.skin && newC.skin !== curC.skin) {
@@ -168,15 +172,18 @@ function game1110Logic(clientData, changes) {
                         var our_idx = ids.indexOf(clientId);
                         var rnd_idx = Math.floor(Math.random()*(ids.length - 1));
                         var id = ids[rnd_idx < our_idx ? rnd_idx : rnd_idx + 1];
-                        newC.x = clientData[id].x + 60;
+                        newC.x = clientData[id].x;
                         newC.y = clientData[id].y;
                     } else {
                         newC.x = warp.dst.x;
                         newC.y = warp.dst.y;
                     }
+                    newC.skin = curC.skin;
                     console.log("Warp of " + clientId + " to " + newC.x + "," + newC.y);
                     changes[clientId]["whomp"] = true;
-                    //sendOne(clientId, JSON.stringify({"msg": "message data"}))
+                    changes[nextId++] = { skin: 'warp', also: curC.skin,
+                        x: curC.x, y: curC.y, temp: true };
+                    changes[nextId++] = { skin: 'warp', x: newC.x, y: newC.y, temp: true };
                 }
             }
         }

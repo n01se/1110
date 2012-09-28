@@ -61,6 +61,36 @@ var centerText = function(text, y) {
   }
 }
 
+var serverSkins = {
+  warp: {
+    width: 50,
+    height: 50,
+    duration: 800,
+    draw: function(skin, avatar, id, msg) {
+      var color, p, alpha, also;
+      for(var i = 0; i < 100; ++i) {
+        if(avatar.also) {
+          also = skins[avatar.also];
+          also.draw(also, avatar, id);
+        }
+	color = Math.random() < 0.5 ? "255,255,255" : "0,0,0";
+        p = ((new Date()) - avatar._last_update) / skin.duration;
+        if(p>1) {
+          delete allAvatars[id];
+        }
+        else {
+          alpha = Math.sin(p * Math.PI / 2);
+          ctx.fillStyle = "rgba(" + color + "," + alpha + ")";
+          ctx.fillRect((Math.random()-0.5)*skin.width,
+                      (Math.random()-0.5)*skin.height + 20,
+                      1,
+                      (Math.random()-0.5)*skin.height);
+        }
+      }
+    }
+  }
+};
+
 var skins = {
   ghost: {
     imgs: { left: loadImage("images/ghost-left.png"),
@@ -154,7 +184,7 @@ var skins = {
 };
 
 function drawAvatar(avatar, id) {
-  var skin = skins[avatar.skin || "sticky"];
+  var skin = skins[avatar.skin || "sticky"] || serverSkins[avatar.skin];
   if (!skin) {
     return;
   }
@@ -275,8 +305,8 @@ var draw = function() {
   for(avatarId in allAvatars) {
     if(avatarId != clientId) {
       oa = allAvatars[avatarId];
-      oa._x = oa.x + oa.dx * (now - oa._last_update) - basex;
-      oa._y = oa.y + oa.dy * (now - oa._last_update) - basey;
+      oa._x = oa.x + (oa.dx || 0) * (now - oa._last_update) - basex;
+      oa._y = oa.y + (oa.dy || 0) * (now - oa._last_update) - basey;
       drawAvatar(oa, avatarId);
       //console.log("client", avatarId, "at", ox, oy);
     }
