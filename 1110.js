@@ -67,24 +67,24 @@ var serverSkins = {
     height: 50,
     duration: 800,
     draw: function(skin, avatar, id, msg) {
-      var color, p, alpha, also;
-      for(var i = 0; i < 100; ++i) {
+      var color;
+      var p = ((new Date()) - avatar._last_update) / skin.duration;
+      if(p>1) {
+        delete allAvatars[id];
+      }
+      else {
         if(avatar.also) {
-          also = skins[avatar.also];
+          var also = skins[avatar.also];
           also.draw(also, avatar, id);
         }
-	color = Math.random() < 0.5 ? "255,255,255" : "0,0,0";
-        p = ((new Date()) - avatar._last_update) / skin.duration;
-        if(p>1) {
-          delete allAvatars[id];
-        }
-        else {
-          alpha = Math.sin(p * Math.PI / 2);
+        var alpha = Math.sin(p * Math.PI / 2);
+        for(var i = 0; i < 100; ++i) {
+          color = Math.random() < 0.5 ? "255,255,255" : "0,0,0";
           ctx.fillStyle = "rgba(" + color + "," + alpha + ")";
           ctx.fillRect((Math.random()-0.5)*skin.width,
-                      (Math.random()-0.5)*skin.height + 20,
-                      1,
-                      (Math.random()-0.5)*skin.height);
+              (Math.random()-0.5)*skin.height + 20,
+              1,
+              (Math.random()-0.5)*skin.height);
         }
       }
     }
@@ -189,23 +189,18 @@ function drawAvatar(avatar, id) {
   if (!skin) {
     return;
   }
-  var skinTime = (new Date()) - (avatar._skinUpdate || 0);
-  if(skinTime > 200) {
-    var x = canvas_center.x + avatar._x, y = canvas_center.y + avatar._y;
-    // Only draw if on-screen
-    if (x > -60 && y > -60 &&
-        x < (canvas_size.x+60) && y < (canvas_size.y+60)) {
+  var x = canvas_center.x + avatar._x, y = canvas_center.y + avatar._y;
+  // Only draw if on-screen
+  if (x > -60 && y > -60 &&
+      x < (canvas_size.x+60) && y < (canvas_size.y+60)) {
+    var skinTime = (new Date()) - (avatar._skinUpdate || 0);
+    if(skinTime > 200) { // draw avatar
       ctx.save();
       ctx.translate(x, y);
       skin.draw(skin, avatar, id);
       ctx.restore();
     }
-  }
-  if(skinTime < 300) {
-    var x = canvas_center.x + avatar._x, y = canvas_center.y + avatar._y;
-    // Only draw if on-screen
-    if (x > -60 && y > -60 &&
-	x < (canvas_size.x+60) && y < (canvas_size.y+60)) {
+    if(skinTime < 300) { // drop pop animation
       ctx.save();
       ctx.fillStyle = "rgb(128,128,128)";
       ctx.translate(x+7, y+20);
@@ -216,6 +211,10 @@ function drawAvatar(avatar, id) {
       }
       ctx.restore();
     }
+  }
+  else if(avatar.temp) {
+    // offscreen temp avatars should be safe to clean up
+    delete allAvatars[id];
   }
 }
 
