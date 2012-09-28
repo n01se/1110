@@ -143,10 +143,17 @@ var warpArea = 20,
 
 function game1110Logic(clientData, changes) {
     for (var clientId in changes) {
-        // Check for warp
         var curC = clientData[clientId],
             newC = changes[clientId];
-        var warped = false;
+        if (/there'?s no place like home/i.exec(newC.msg)) {
+            changes[clientId] = {
+                whomp: true,
+                x: -594,
+                y: -1284,
+                msg: ""
+            };
+        }
+        // Check for warp
         if (newC.skin && newC.skin !== curC.skin) {
             //console.log("Detected skin change to " + newC.skin + " for client id " + clientId);
             for (var i=0; i < warps.length; i++) {
@@ -161,14 +168,13 @@ function game1110Logic(clientData, changes) {
                         var our_idx = ids.indexOf(clientId);
                         var rnd_idx = Math.floor(Math.random()*(ids.length - 1));
                         var id = ids[rnd_idx < our_idx ? rnd_idx : rnd_idx + 1];
-                        newC.x = clientData[id].x;
+                        newC.x = clientData[id].x + 60;
                         newC.y = clientData[id].y;
                     } else {
                         newC.x = warp.dst.x;
                         newC.y = warp.dst.y;
                     }
                     console.log("Warp of " + clientId + " to " + newC.x + "," + newC.y);
-                    warped = true;
                     changes[clientId]["whomp"] = true;
                     //sendOne(clientId, JSON.stringify({"msg": "message data"}))
                 }
