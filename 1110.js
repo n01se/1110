@@ -129,6 +129,7 @@ var skins = {
     height: 57,
     maxSpeed: 0.3,
     draw: function (skin, avatar, id, msg) {
+	ctx.fillStyle = "rgb(128,128,128)";
 	centerText(avatar.msg, -10);
 	ctx.rotate(avatar.dx*swing);
 	ctx.drawImage(skin.img,-skin.width/2,-5);
