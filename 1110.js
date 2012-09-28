@@ -43,11 +43,10 @@ var applyMousePull = function(d, pull, maxSpeed) {
 };
 
 var drawTiles = function(ctx, tileset) {
-  var ox, oy, oa;
   for_tiles(function(tx, ty, name) {
     if( tileset[name] && tileset[name].isLoaded) {
-      ox = tx*tilesize-Math.round(avatar.x)-canvas_center.x;
-      oy = ty*tilesize-Math.round(avatar.y)-canvas_center.y;
+      var ox = tx*tilesize-Math.round(avatar.x)-canvas_center.x;
+      var oy = ty*tilesize-Math.round(avatar.y)-canvas_center.y;
       if( ox < canvas_size.x && oy < canvas_size.y &&
           ox+tilesize > 0 && oy+tilesize > 0 ) {
         ctx.drawImage(tileset[name], ox, oy);
@@ -69,22 +68,14 @@ var skins = {
     width: 50,
     height: 57,
     maxSpeed: 0.1, // pixels per ms
-    draw: function (skin, avatar, ox, oy, dx, id, msg) {
-      var x = canvas_center.x + ox, y = canvas_center.y + oy;
-      // Only draw if on-screen
-      if (x > -60 && y > -60 &&
-	  x < (canvas_size.x+60) && y < (canvas_size.y+60)) {
-	ctx.save();
+    draw: function (skin, avatar, id, msg) {
 	ctx.fillStyle = "rgb(128,128,128)";
-	ctx.translate(x, y);
 	centerText(avatar.msg, -10);
 	centerText(avatar.nick || id, 50);
 	ctx.save();
         ctx.scale(0.7, 0.7);
-	ctx.drawImage((avatar.last_dx||dx)<0?skin.imgs.left:skin.imgs.right, -skin.width/2, -5);
+	ctx.drawImage((avatar.dx||avatar.last_dx)<0?skin.imgs.left:skin.imgs.right, -skin.width/2, -5);
 	ctx.restore();
-	ctx.restore();
-      }
     },
     update: function(skin, now) {
       avatar.dx = roundAt(applyMousePull(avatar.dx, mousepull.x, skin.maxSpeed), 4);
@@ -107,19 +98,11 @@ var skins = {
     width: 26,
     height: 57,
     maxSpeed: 0.3,
-    draw: function (skin, avatar, ox, oy, dx, id, msg) {
-      var x = canvas_center.x + ox, y = canvas_center.y + oy;
-      // Only draw if on-screen
-      if (x > -60 && y > -60 &&
-	  x < (canvas_size.x+60) && y < (canvas_size.y+60)) {
-	ctx.save();
-	ctx.translate(x, y);
+    draw: function (skin, avatar, id, msg) {
 	centerText(avatar.msg, -10);
-	ctx.rotate(dx*swing);
+	ctx.rotate(avatar.dx*swing);
 	ctx.drawImage(skin.img,-skin.width/2,-5);
 	centerText(avatar.nick || id, 70);
-	ctx.restore();
-      }
     },
     update: function(skin, now) {
       avatar.dx = roundAt(applyMousePull(avatar.dx, mousepull.x, skin.maxSpeed), 4);
@@ -170,17 +153,25 @@ var skins = {
   }
 };
 
-function drawAvatar(avatar, ox, oy, id) {
+function drawAvatar(avatar, id) {
   var skin = skins[avatar.skin || "sticky"];
   if (!skin) {
     return;
   }
   var skinTime = (new Date()) - (avatar._skinUpdate || 0);
   if(skinTime > 200) {
-    skin.draw(skin, avatar, ox, oy, avatar.dx, id);
+    var x = canvas_center.x + avatar._x, y = canvas_center.y + avatar._y;
+    // Only draw if on-screen
+    if (x > -60 && y > -60 &&
+        x < (canvas_size.x+60) && y < (canvas_size.y+60)) {
+      ctx.save();
+      ctx.translate(x, y);
+      skin.draw(skin, avatar, id);
+      ctx.restore();
+    }
   }
   if(skinTime < 300) {
-    var x = canvas_center.x + ox, y = canvas_center.y + oy;
+    var x = canvas_center.x + avatar._x, y = canvas_center.y + avatar._y;
     // Only draw if on-screen
     if (x > -60 && y > -60 &&
 	x < (canvas_size.x+60) && y < (canvas_size.y+60)) {
@@ -213,6 +204,8 @@ var avatar = {
   dx : 0,
   dy : 0,
   msg : "",
+  _x: 0,
+  _y: 0,
   _last_update : 0};
 
 var pulling = false;
@@ -276,12 +269,15 @@ var draw = function() {
   drawTiles(ctx, bg_tiles);
 
   // Draw the other avatars
+  var basex = Math.round(avatar.x);
+  var basey = Math.round(avatar.y);
+  var oa, ox, oy;
   for(avatarId in allAvatars) {
-    oa = allAvatars[avatarId];
-    if(avatarId != clientId && oa._last_update) {
-      ox = oa.x - Math.round(avatar.x) + oa.dx * (now - oa._last_update);
-      oy = oa.y - Math.round(avatar.y) + oa.dy * (now - oa._last_update);
-      drawAvatar(oa, ox, oy, avatarId);
+    if(avatarId != clientId) {
+      oa = allAvatars[avatarId];
+      oa._x = oa.x + oa.dx * (now - oa._last_update) - basex;
+      oa._y = oa.y + oa.dy * (now - oa._last_update) - basey;
+      drawAvatar(oa, avatarId);
       //console.log("client", avatarId, "at", ox, oy);
     }
   }
@@ -290,7 +286,7 @@ var draw = function() {
     ctx.fillStyle = "rgba(255,255,255,0.4)";
     ctx.fillRect(0, 0, canvas_size.x, canvas_size.y);
   }
-  drawAvatar(avatar, 0, 0, clientId);
+  drawAvatar(avatar, clientId);
 };
 
 
