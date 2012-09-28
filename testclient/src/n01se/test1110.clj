@@ -46,9 +46,11 @@
       (Thread/sleep 150)
       (recur (+ 0.1 theta)))))
 
-(defn -main [& [client-count]]
-  (let [client-count (if client-count (Integer/parseInt client-count) 1)]
+(defn -main [& [client-count uri]]
+  (let [client-count (if client-count (Integer/parseInt client-count) 1)
+        uri (if uri uri "ws://localhost:8080")]
     (prn :client-count client-count)
     (dotimes [i client-count]
       (future
-        (circle "ws://localhost:8080" i)))))
+        (circle uri i)))))
+
