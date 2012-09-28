@@ -5,6 +5,12 @@ var ws, clientId, allAvatars, connected,
 // hackernews mitigation:
 serverURI = "ws://ec2-23-22-134-23.compute-1.amazonaws.com:8080"
 
+function serverMsg(color, html) {
+    var msg = $('#message')[0];
+    msg.style.background = color;
+    msg.innerHTML = html;
+}
+
 window.addEventListener('load', function () {
   console.log("Connecting to server:" + serverURI);
   ws = new WebSocket(serverURI);
@@ -32,10 +38,19 @@ window.addEventListener('load', function () {
       delete allAvatars[msg["delete"]];
     } else if (msg.change) {
         for (var id in msg.change) {
+            if (!allAvatars[id]) { allAvatars[id] = {}; }
             $.extend(allAvatars[id], msg.change[id]);
             allAvatars[id]._last_update = now;
             if(msg.change[id].skin) {
               allAvatars[id]._skinUpdate = now;
+            }
+            if (id === clientId.toString()) {
+                if (msg.change[id].whomp) {
+                    // Whomp means synchronize our avatar
+                    console.log("Whomp to: ", allAvatars[id]);
+                    delete allAvatars[id].whomp;
+                    $.extend(avatar, allAvatars[id]);
+                }
             }
         }
     } else {
@@ -46,20 +61,20 @@ window.addEventListener('load', function () {
     console.log("WebSocket error:", e);
   };
   ws.onclose = function (e) {
-    var msg = $('#message')[0];
-    msg.style.background = "#fe8";
     connected = false;
-    //console.log("WebSocket connection closed:", e, e);
+    var msg = "";
     if (e.code === 1008 || e.code === 1009) {
-      msg.innerHTML = "Disconnected from server"
+      msg += "Disconnected from server"
       if (e.reason) {
-        msg.innerHTML += ": " + e.reason;
+        msg += ": " + e.reason;
       }
-      msg.innerHTML += "<br>You can also run your own server. " +
+      msg += "<br>You can also run your own server. " +
           "Get the code <a href='https://github.com/n01se/1110'>on github</a>.<br>" +
           "Or <a href='http://www.youtube.com/watch?v=EvLxOVYeo5w'>watch a preview</a>";
     } else {
-      msg.innerHTML = "No connection to server";
+      msg += "No connection to server";
     }
+    serverMsg("#fe8", msg);
+    //console.log("WebSocket connection closed:", e, e);
   };
 });
