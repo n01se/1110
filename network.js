@@ -23,7 +23,8 @@ window.addEventListener('load', function () {
     var msg = JSON.parse(e.data);
     if(msg.id) {
       clientId = msg.id;
-    } else if (msg.all) {
+    }
+    if (msg.all) {
       allAvatars = msg.all;
       for (var id in msg.all) {
         allAvatars[id]._last_update = now;
@@ -32,6 +33,7 @@ window.addEventListener('load', function () {
       delete allAvatars[msg["delete"]];
     } else if (msg.change) {
         for (var id in msg.change) {
+            if(!allAvatars[id]) { allAvatars[id] = {}; }
             $.extend(allAvatars[id], msg.change[id]);
             allAvatars[id]._last_update = now;
             if(msg.change[id].skin) {

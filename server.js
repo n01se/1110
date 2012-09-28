@@ -77,8 +77,7 @@ wss.on('connection', function(client) {
     log("New client ID: " + clientId);
     log("Current number of clients: " + numClients);
 
-    sendOne(clientId, JSON.stringify({"id": clientId}));
-    sendAll(JSON.stringify({"all": clientData}));
+    sendOne(clientId, JSON.stringify({"id": clientId, "all": clientData}));
 
     client.on('close', function() {
         warn("Client ID " + clientId + " disconnected");
