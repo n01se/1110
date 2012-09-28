@@ -2,13 +2,13 @@ var ws, clientId, allAvatars, connected,
     serverURI = "ws://" + window.location.hostname + ":8090",
     netDebug = 5;
 
-// hackernews mitigation:
-serverURI = "ws://ec2-23-22-134-23.compute-1.amazonaws.com:8080"
+if(window.location.hostname == "1110.n01se.net") {
+  serverURI = "ws://ec2-23-22-134-23.compute-1.amazonaws.com:8080"
+}
 
 window.addEventListener('load', function () {
   console.log("Connecting to server:" + serverURI);
   ws = new WebSocket(serverURI);
-  //ws = new WebSocket("ws://localhost:8080");
   ws.onopen = function () {
     console.log("WebSocket connection established");
     connected = true;
