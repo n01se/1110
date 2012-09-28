@@ -158,7 +158,7 @@ var skins = {
 	  dx = -dx * collide_bounce;
 	}
 	if (xDensity2 > (0.40 * (aw/(ah+aw))) && yDensity1 < yDensity2) {
-	  avatar.dy = roundAt(-avatar.dy * collide_bounce);
+	  avatar.dy = roundAt(-avatar.dy * collide_bounce, 4);
 	  dy = -dy * collide_bounce;
 	}
       }
