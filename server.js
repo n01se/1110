@@ -91,13 +91,8 @@ wss.on('connection', function(client) {
     log("New client ID: " + clientId);
     log("Current number of clients: " + numClients);
 
-    // Send the new guy his ID and the all the other client states
-    sendOne(clientId, JSON.stringify({"id": clientId}));
-    sendOne(clientId, JSON.stringify({"all": clientData}));
-    // Send the new guy's state to all the clients
-    var tmp = {};
-    tmp[clientId] = clientData[clientId];
-    sendAll(JSON.stringify({"change": tmp}));
+    // Send the new guy his ID and all the other client states
+    sendOne(clientId, JSON.stringify({"id": clientId, "all": clientData}));
 
     client.on('close', function() {
         warn("Client ID " + clientId + " disconnected");
