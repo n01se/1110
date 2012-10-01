@@ -3,7 +3,7 @@ var swing = 2;
 var friction = 0.01;
 var pullPower = 0.0003;
 var message_time = 15000;
-var maxMsgLength = 40;
+var msgWrapWidth = 30;
 var collide_bounce = 0.0;
 var idleTime1 = 30; // seconds
 var idleTime2 = 15; // seconds
@@ -57,7 +57,12 @@ var drawTiles = function(ctx, tileset) {
 
 var centerText = function(text, y) {
   if(text) {
-    ctx.fillText(text,-(ctx.measureText(text).width/2),y);
+    var lines = (""+text).split(/\n(?=.)/);
+    $.each(lines, function(i, line) {
+      ctx.fillText(line,
+          -(ctx.measureText(line).width/2),
+          y - (15 * (lines.length - i - 1)));
+    });
   }
 }
 
@@ -416,7 +421,6 @@ $('body').mousemove(function(e){
 // Key/message handling
 
 var messageTimer = null;
-var clearNextMessage = false;
 
 var messageTimeout = function () {
       messageTimer = null;
@@ -425,8 +429,9 @@ var messageTimeout = function () {
 
 $(document).keydown(function(e){
   restartIdle();
-  if (e.keyCode === 8) {
+  if (e.keyCode === 8 || e.keyCode === 46) {
     e.preventDefault();
+    avatar.msg = avatar.msg.substring(0, avatar.msg.length-1);
   }
 });
 
@@ -440,11 +445,6 @@ $(document).keyup(function(e){
     clearTimeout(messageTimer);
   }
   messageTimer = setTimeout(messageTimeout, message_time);
-
-  if (key === 8 || key === 46) {
-    clearNextMessage = false;
-    avatar.msg = avatar.msg.substring(0, avatar.msg.length-1);
-  }
 });
 
 
@@ -453,19 +453,13 @@ $(document).keypress(function(e){
   var key = e.keyCode, chr = e.charCode,
       msg = $('#message');
   //console.log("char:", chr, String.fromCharCode(e.charCode));
-  if (key === 13) {
-    clearNextMessage = true;
-    var m = /^i am (.*)/i.exec(avatar.msg);
-    if(m) {
-      avatar.nick = m[1];
-    }
-  } else {
-    if (clearNextMessage) {
-      clearNextMessage = false;
-      avatar.msg = "";
-    }
-    if (avatar.msg.length < maxMsgLength) {
-      avatar.msg += String.fromCharCode(chr);
-    }
+  if(chr === 13) { chr = 10; }
+  else if(chr === 32 && avatar.msg.length - avatar.msg.lastIndexOf('\n') > msgWrapWidth) {
+    // autowrap
+    chr=10;
   }
+  avatar.msg += String.fromCharCode(chr);
+  var m = /(?:^|\n)i am (.*)\n/i.exec(avatar.msg);
+  if(m) { avatar.nick = m[1]; }
+  avatar.msg = /(?:.*\n){0,2}.*\n?$/.exec(avatar.msg)[0]; // limit 3 lines
 });
