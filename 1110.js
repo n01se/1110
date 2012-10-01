@@ -98,8 +98,7 @@ var serverSkins = {
 
 var skins = {
   ghost: {
-    imgs: { left: loadImage("images/ghost-left.png"),
-            right: loadImage("images/ghost-right.png") },
+    img: loadImage("images/ghost-left.png"),
     width: 50,
     height: 57,
     maxSpeed: 0.1, // pixels per ms
@@ -109,7 +108,10 @@ var skins = {
 	centerText(avatar.nick || id, 50);
 	ctx.save();
         ctx.scale(0.7, 0.7);
-	ctx.drawImage((avatar.dx||avatar.last_dx)<0?skin.imgs.left:skin.imgs.right, -skin.width/2, -5);
+        if((avatar.dx||avatar.last_dx)>0) {
+            ctx.scale(-1,1);
+        }
+	ctx.drawImage(skin.img, -skin.width/2, -5);
 	ctx.restore();
     },
     update: function(skin, now) {
