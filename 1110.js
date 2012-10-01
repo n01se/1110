@@ -2,11 +2,14 @@ var send_poll_interval = 150;
 var swing = 2;
 var friction = 0.01;
 var pullPower = 0.0003;
+var gravityPower = 0.010;
+var jumpPower = 0.2;
 var message_time = 15000;
 var msgWrapWidth = 30;
 var collide_bounce = 0.0;
 var idleTime1 = 30; // seconds
 var idleTime2 = 15; // seconds
+var sealevel = -1130;
 
 var clamp = function(x, min, max) {
   return x>min?(x<max?x:max):min;
@@ -66,36 +69,26 @@ var centerText = function(text, y) {
   }
 }
 
-var serverSkins = {
-  warp: {
-    width: 50,
-    height: 50,
-    duration: 800,
-    draw: function(skin, avatar, id, msg) {
-      var color;
-      var p = ((new Date()) - avatar._last_update) / skin.duration;
-      if(p>1) {
-        delete allAvatars[id];
-      }
-      else {
-        if(avatar.also) {
-          var also = skins[avatar.also];
-          also.draw(also, avatar, id);
-        }
-        var alpha = Math.sin(p * Math.PI / 2);
-        for(var i = 0; i < 100; ++i) {
-          color = Math.random() < 0.5 ? "255,255,255" : "0,0,0";
-          ctx.fillStyle = "rgba(" + color + "," + alpha + ")";
-          ctx.fillRect((Math.random()-0.5)*skin.width,
-              (Math.random()-0.5)*skin.height + 20,
-              1,
-              (Math.random()-0.5)*skin.height);
-        }
-      }
-    }
-  }
-};
+var marioland = {top: -1820, bottom: -1600, left: 11666, right: 13210};
 
+function skinList () {
+  if (avatar.x > marioland.left && avatar.x < marioland.right &&
+      avatar.y > marioland.top && avatar.y < marioland.bottom) {
+      return ["fallguy"];
+  } else if ((avatar.x > marioland.left && avatar.x < marioland.right) || avatar.y > sealevel) {
+      return ["fallguy", "sticky", "ghost"];
+  } else {
+      return ["sticky", "ghost"];
+  }
+}
+function changeSkin() {
+    var slist = skinList(),
+        newSkin = slist[(slist.indexOf(avatar.skin)+1)%slist.length];
+    if (newSkin !== avatar.skin) {
+        avatar.skin = slist[(slist.indexOf(avatar.skin)+1)%slist.length];
+        avatar._skinUpdate = (new Date()).getTime();
+    }
+}
 var skins = {
   ghost: {
     img: loadImage("images/ghost-left.png"),
@@ -159,10 +152,9 @@ var skins = {
 	    aw = skin.width-14, //-skin.width/2,
 	    ah = skin.height-12;
 
-	var xDensity1 = getDensity(sctx, ax, ay, aw, ah);
-	var yDensity1 = getDensity(sctx, ax, ay, aw, ah);
-	var xDensity2 = getDensity(sctx, ax+dx, ay, aw, ah);
-	var yDensity2 = getDensity(sctx, ax, ay+dy, aw, ah);
+	var myDensity = getDensity(sctx, ax, ay, aw, ah);
+	var xDensity1 = getDensity(sctx, ax+dx, ay, aw, ah);
+	var yDensity1 = getDensity(sctx, ax, ay+dy, aw, ah);
 
 	/*
 	// Show the bounding boxes for collision detection
@@ -174,11 +166,11 @@ var skins = {
 	ctx.strokeRect(ax, ay+dy, aw, ah);
 	*/
 
-	if (xDensity2 > (0.40 * (ah/(aw+ah))) && xDensity1 < xDensity2) {
+	if (xDensity1 > (0.40 * (ah/(aw+ah))) && myDensity < xDensity1) {
 	  avatar.dx = roundAt(-avatar.dx * collide_bounce, 4);
 	  dx = -dx * collide_bounce;
 	}
-	if (xDensity2 > (0.40 * (aw/(ah+aw))) && yDensity1 < yDensity2) {
+	if (yDensity1 > (0.40 * (aw/(ah+aw))) && myDensity < yDensity1) {
 	  avatar.dy = roundAt(-avatar.dy * collide_bounce, 4);
 	  dy = -dy * collide_bounce;
 	}
@@ -188,11 +180,126 @@ var skins = {
       avatar.y = roundAt(avatar.y + dy, 1);
       avatar._last_update = now;
     }
+  },
+  fallguy: {
+    img: loadImage("images/fallguy.png"),
+    width: 14,
+    height: 35,
+    maxXSpeed: 0.1,
+    maxFallSpeed: 0.5,
+    delayDraw: null,
+    draw: function (skin, avatar, id, msg) {
+	ctx.fillStyle = "rgb(128,128,128)";
+	centerText(avatar.msg, -10);
+        ctx.save();
+	centerText(avatar.nick || id, 50);
+        if((avatar.dx||avatar.last_dx)>0) {
+            ctx.scale(-1,1);
+        }
+	ctx.drawImage(skin.img,-skin.width/2,-5);
+        ctx.restore();
+        if (skin.delayDraw) {
+            skin.delayDraw();
+            skin.delayDraw = null;
+        }
+    },
+    update: function(skin, now) {
+      avatar.dx = roundAt(applyMousePull(avatar.dx, mousepull2.x, skin.maxXSpeed), 4);
+      avatar.dy = roundAt(clamp(avatar.dy + gravityPower, -jumpPower, skin.maxFallSpeed), 4);;
+
+      avatar._last_update = avatar._last_update || now;
+      var dx = avatar.dx * (now - avatar._last_update),
+	  dy = avatar.dy * (now - avatar._last_update);
+
+      // Collision detection
+      if (dx || dy) {
+
+        drawTiles(sctx, scan_tiles);
+	var ax = canvas_center.x+3-(skin.width/2),
+	    ay = canvas_center.y-2,
+	    aw = skin.width-6, //-skin.width/2,
+	    ah = skin.height-5;
+
+	var myDensity = getDensity(sctx, ax, ay, aw, ah);
+	var xDensity1 = getDensity(sctx, ax+dx, ay, aw, ah);
+	var xDensity2 = getDensity(sctx, ax+dx, ay-2, aw, ah);
+	var yDensity1 = getDensity(sctx, ax, ay+dy, aw, ah);
+	var yDensity2 = getDensity(sctx, ax, ay+2, aw, ah);
+
+	// Show the bounding boxes for collision detection
+        /*
+        skin.delayDraw = function () {
+            var x = ax-canvas_center.x, y = ay-canvas_center.y;
+            ctx.strokeStyle = "rgb(255,128,128)";
+            ctx.strokeRect(x, y, aw, ah);
+            ctx.strokeStyle = "rgb(128,255,128)";
+            ctx.strokeRect(x+dx, y, aw, ah);
+            ctx.strokeStyle = "rgb(128,128,255)";
+            ctx.strokeRect(x, y+dy, aw, ah);
+        }
+        */
+
+	if (xDensity1 > (0.40 * (ah/(aw+ah))) && myDensity < xDensity1) {
+          if (xDensity2 < xDensity1 && xDensity2 < (0.40 * (ah/(aw+ah)))) {
+            avatar.y -= 2;
+          } else {
+            avatar.dx = roundAt(-avatar.dx * collide_bounce, 4);
+            dx = -dx * collide_bounce;
+          }
+	}
+        if (mouseClicked && yDensity2 > (0.30 * (aw/(ah+aw)))) {
+          avatar.dy = dy = -jumpPower;
+        } else
+	if (yDensity1 > (0.40 * (aw/(ah+aw))) && myDensity <= yDensity1) {
+	  avatar.dy = roundAt(-avatar.dy * collide_bounce, 4);
+	  dy = -dy * collide_bounce;
+	}
+      }
+      mouseClicked = false;
+
+      var x = roundAt(avatar.x + dx, 1);
+      if(x < marioland.left + 10 && avatar.y < sealevel) {
+        avatar.x = marioland.left + 10;
+        avatar.y = Math.min(-1618,avatar.y + dy);
+      }
+      else {
+        avatar.x = x;
+        avatar.y = roundAt(avatar.y + dy, 1);
+      }
+      avatar._last_update = now;
+    }
+  },
+  warp: {
+    width: 50,
+    height: 50,
+    duration: 800,
+    draw: function(skin, avatar, id, msg) {
+      var color;
+      var p = ((new Date()) - avatar._last_update) / skin.duration;
+      if(p>1) {
+        delete allAvatars[id];
+      }
+      else {
+        if(avatar.also) {
+          var also = skins[avatar.also];
+          also.draw(also, avatar, id);
+        }
+        var alpha = Math.sin(p * Math.PI / 2);
+        for(var i = 0; i < 100; ++i) {
+          color = Math.random() < 0.5 ? "255,255,255" : "0,0,0";
+          ctx.fillStyle = "rgba(" + color + "," + alpha + ")";
+          ctx.fillRect((Math.random()-0.5)*skin.width,
+              (Math.random()-0.5)*skin.height + 20,
+              1,
+              (Math.random()-0.5)*skin.height);
+        }
+      }
+    }
   }
 };
 
 function drawAvatar(avatar, id) {
-  var skin = skins[avatar.skin || "sticky"] || serverSkins[avatar.skin];
+  var skin = skins[avatar.skin || "sticky"];
   if (!skin) {
     return;
   }
@@ -226,7 +333,11 @@ function drawAvatar(avatar, id) {
 }
 
 function updateAvatar(now) {
-  var skin = skins[avatar.skin || "sticky"];
+  var s = avatar.skin || "sticky";
+  if (skinList().indexOf(s) < 0) {
+      changeSkin();
+  }
+  var skin = skins[s];
   if (!skin) {
     return;
   }
@@ -235,7 +346,6 @@ function updateAvatar(now) {
 
 var avatar = {
   skin: "sticky",
-  //x : 11659, y : -1645,  // marioland
   x : -595,
   y : -1494,
   dx : 0,
@@ -246,7 +356,7 @@ var avatar = {
   _last_update : 0};
 
 var pulling = false;
-var mousepull = {x:0, y:0};
+var mousepull = {x:0, y:0}, mousepullMove = {x:0, y:0}, mouseClicked = false;
 
 var tile_name=function(x,y){
   return (y>=0?(y+1)+'s':-y+'n')+(x>=0?(x+1)+'e':-x+'w');
@@ -387,6 +497,7 @@ restartIdle();
 
 $('#viewport').mousedown(function(e){
   restartIdle();
+  mouseClicked = true;
   var offset = $('#viewport').offset();
   var x = e.clientX - offset.left;
   var y = e.clientY - offset.top;
@@ -399,20 +510,20 @@ $('#viewport').mousedown(function(e){
      y < canvas_center.y+60 &&
      y > canvas_center.y+0)
   {
-    var slist = Object.keys(skins)
-    avatar.skin = slist[(slist.indexOf(avatar.skin)+1)%slist.length];
-    avatar._skinUpdate = (new Date()).getTime();
+    changeSkin();
   }
 });
 $('body').mousemove(function(e){
+  var offset = $('#viewport').offset();
+  var x = e.clientX - offset.left;
+  var y = e.clientY - offset.top;
   if(pulling) {
     restartIdle();
-    var offset = $('#viewport').offset();
-    var x = e.clientX - offset.left;
-    var y = e.clientY - offset.top;
     mousepull = {x: (20+canvas_center.x)-x,
                  y: (20+canvas_center.y)-y};
   }
+  mousepull2 = {x: (20+canvas_center.x)-x,
+                y: (20+canvas_center.y)-y};
 }).mouseup(function(e){
   restartIdle();
   pulling = false;
