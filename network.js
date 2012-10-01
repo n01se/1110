@@ -4,7 +4,8 @@ var ws, clientId, allAvatars, connected,
 
 if(window.location.hostname == "1110.n01se.net") {
   if (window.location.pathname.substr(0, 4) !== "/dev") {
-    serverURI = "ws://ec2-23-22-134-23.compute-1.amazonaws.com:8080"
+    //serverURI = "ws://ec2-23-22-134-23.compute-1.amazonaws.com:8080"
+    serverURI = "ws://ec2-23-20-102-89.compute-1.amazonaws.com:8080";
   }
 }
 
