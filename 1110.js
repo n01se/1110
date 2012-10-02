@@ -439,6 +439,7 @@ var draw = function() {
 
 
 var oldAvatar = {};
+var startTime = (new Date()).getTime();
 setInterval(function () {
   if (window.ws && ws.readyState) {
     var msg = {};
@@ -449,7 +450,7 @@ setInterval(function () {
       }
     }
     if (Object.keys(msg).length) {
-      msg.sent = (new Date()).getTime();
+      msg.sent = (new Date()).getTime() - startTime;
       ws.send(JSON.stringify(msg));
     }
     oldAvatar = $.extend({}, avatar)
