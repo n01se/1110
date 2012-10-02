@@ -3,10 +3,10 @@ var ws, clientId, allAvatars, connected,
     netDebug = 5;
 
 if(window.location.hostname == "1110.n01se.net") {
-  if (window.location.pathname.substr(0, 4) !== "/dev") {
+  //if (window.location.pathname.substr(0, 4) !== "/dev") {
     //serverURI = "ws://ec2-23-22-134-23.compute-1.amazonaws.com:8080"
     serverURI = "ws://ec2-23-20-102-89.compute-1.amazonaws.com:8080";
-  }
+  //}
 }
 
 function serverMsg(color, html) {
@@ -45,6 +45,9 @@ window.addEventListener('load', function () {
             if (!allAvatars[id]) { allAvatars[id] = {}; }
             $.extend(allAvatars[id], msg.change[id]);
             allAvatars[id]._last_update = now;
+            if(!allAvatars[id]._timeDiff && msg.change[id].sent) {
+                allAvatars[id]._timeDiff = now - msg.change[id].sent;
+            }
             if(msg.change[id].skin) {
               allAvatars[id]._skinUpdate = now;
             }

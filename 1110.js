@@ -418,12 +418,13 @@ var draw = function() {
   // Draw the other avatars
   var basex = Math.round(avatar.x);
   var basey = Math.round(avatar.y);
-  var oa, ox, oy;
+  var oa, ox, oy, timeFactor;
   for(avatarId in allAvatars) {
     if(avatarId != clientId) {
       oa = allAvatars[avatarId];
-      oa._x = oa.x + (oa.dx || 0) * (now - oa._last_update) - basex;
-      oa._y = oa.y + (oa.dy || 0) * (now - oa._last_update) - basey;
+      timeFactor = now - (oa.sent || oa._last_update) - (oa._timeDiff || 0);
+      oa._x = oa.x + (oa.dx || 0) * timeFactor - basex;
+      oa._y = oa.y + (oa.dy || 0) * timeFactor - basey;
       drawAvatar(oa, avatarId);
       //console.log("client", avatarId, "at", ox, oy);
     }
@@ -448,6 +449,7 @@ setInterval(function () {
       }
     }
     if (Object.keys(msg).length) {
+      msg.sent = (new Date()).getTime();
       ws.send(JSON.stringify(msg));
     }
     oldAvatar = $.extend({}, avatar)
