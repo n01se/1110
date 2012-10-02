@@ -31,9 +31,12 @@
   (let [factor (Math/pow 10 places)]
     (/ (Math/round (* num factor)) factor)))
 
+(def start (System/currentTimeMillis))
+
 (defn circle [uri i]
   (let [radius 150
-        speed 0.1
+        speed 0.2
+        delay 150
         halfpi (/ Math/PI 2)
         ws (ws-client uri :onmessage (fn [_]))]
     (sendjs ws {:nick (str "circlebot " i)})
@@ -42,9 +45,10 @@
               {:dx (round (* (Math/cos (+ theta halfpi)) speed) 4)
                :dy (round (* (Math/sin (+ theta halfpi)) speed) 4)
                :x (Math/round (+  -823 (* (Math/cos theta) radius)))
-               :y (Math/round (+ -1523 (* (Math/sin theta) radius)))})
-      (Thread/sleep 150)
-      (recur (+ 0.1 theta)))))
+               :y (Math/round (+ -1523 (* (Math/sin theta) radius)))
+               :sent (- (System/currentTimeMillis) start)})
+      (Thread/sleep delay)
+      (recur (+ theta (/ (* speed delay) 150))))))
 
 (defn -main [& [client-count uri]]
   (let [client-count (if client-count (Integer/parseInt client-count) 1)
