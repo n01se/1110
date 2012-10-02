@@ -37,16 +37,23 @@ window.addEventListener('load', function () {
       allAvatars = msg.all;
       for (var id in msg.all) {
         allAvatars[id]._last_update = now;
+        allAvatars[id]._timeDiffs = [];
       }
     } else if (msg["delete"]) {
       delete allAvatars[msg["delete"]];
     } else if (msg.change) {
+        var diffs, ttl;
         for (var id in msg.change) {
-            if (!allAvatars[id]) { allAvatars[id] = {}; }
+            if (!allAvatars[id]) { allAvatars[id] = {_timeDiffs: []}; }
             $.extend(allAvatars[id], msg.change[id]);
             allAvatars[id]._last_update = now;
-            if(!allAvatars[id]._timeDiff && msg.change[id].sent) {
-                allAvatars[id]._timeDiff = now - msg.change[id].sent;
+            if(msg.change[id].sent) {
+                diffs = allAvatars[id]._timeDiffs;
+                diffs.push(now - msg.change[id].sent);
+                if(diffs.length > 10) { diffs.shift(); }
+                ttl = 0;
+                $.each(diffs, function(i, diff) { ttl += diff });
+                allAvatars[id]._timeDiff = ttl / diffs.length;
             }
             if(msg.change[id].skin) {
               allAvatars[id]._skinUpdate = now;
