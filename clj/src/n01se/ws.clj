@@ -1,4 +1,4 @@
-(ns n01se.test1110
+(ns n01se.ws
   (:require [clj-json.core :as json])
   (:import (org.eclipse.jetty.websocket
             WebSocket$OnTextMessage WebSocketClientFactory WebSocket$Connection)
@@ -24,37 +24,5 @@
                  (onMessage [this data] (onmessage data))))
         (.get 10 TimeUnit/SECONDS))))
 
-(defn sendjs [ws obj]
+(defn sendjson [ws obj]
   (.sendMessage ^WebSocket$Connection ws (json/generate-string obj)))
-
-(defn round [num places]
-  (let [factor (Math/pow 10 places)]
-    (/ (Math/round (* num factor)) factor)))
-
-(def start (System/currentTimeMillis))
-
-(defn circle [uri i]
-  (let [radius 150
-        speed 0.2
-        delay 150
-        halfpi (/ Math/PI 2)
-        ws (ws-client uri :onmessage (fn [_]))]
-    (sendjs ws {:nick (str "circlebot " i)})
-    (loop [theta (* 0.3 i)]
-      (sendjs ws
-              {:dx (round (* (Math/cos (+ theta halfpi)) speed) 4)
-               :dy (round (* (Math/sin (+ theta halfpi)) speed) 4)
-               :x (Math/round (+  -823 (* (Math/cos theta) radius)))
-               :y (Math/round (+ -1523 (* (Math/sin theta) radius)))
-               :sent (- (System/currentTimeMillis) start)})
-      (Thread/sleep delay)
-      (recur (+ theta (/ (* speed delay) 150))))))
-
-(defn -main [& [client-count uri]]
-  (let [client-count (if client-count (Integer/parseInt client-count) 1)
-        uri (if uri uri "ws://localhost:8080")]
-    (prn :client-count client-count)
-    (dotimes [i client-count]
-      (future
-        (circle uri i)))))
-
