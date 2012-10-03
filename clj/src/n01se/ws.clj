@@ -1,5 +1,4 @@
 (ns n01se.ws
-  (:require [clj-json.core :as json])
   (:import [org.eclipse.jetty.websocket
             WebSocket$OnTextMessage WebSocketClientFactory WebSocket$Connection
             WebSocketServlet]
@@ -28,21 +27,23 @@
                  (onMessage [this data] (onmessage this data))))
         (.get 10 TimeUnit/SECONDS))))
 
-(defn sendjson [ws obj]
-  (.sendMessage ^WebSocket$Connection ws (json/generate-string obj)))
+(defn send-message [^WebSocket$Connection ws text]
+  (.sendMessage ws text))
 
+(defn close [^WebSocket$Connection ws]
+  (close ^WebSocket$Connection ws))
 
-(defn ws-server
+(defn ^Server ws-server
   [& {:keys [port onopen onclose onmessage ws-path]
       :or {port 8080
            ws-path "/"}}]
   (let [onopen (or onopen (fn [this conn] (println "onopen:" conn)))
         onclose (or onclose (fn [this code msg] (println "onclose:" code msg)))
-        onmessage (or onmessage (fn [this data] (println "onmessage:" data)))
+        onmessage (or onmessage (fn [this data] (println "onmessage:" this data)))
         servlet (proxy [WebSocketServlet] []
                   (doGet [request response]
-                    (.. (proxy-super getServletContext)
-                        (getNamedDispatcher (proxy-super getServletName))
+                    (.. (.getServletContext ^WebSocketServlet this)
+                        (getNamedDispatcher (.getServletName ^WebSocketServlet this))
                         (forward request response)))
                   (doWebSocketConnect [request response]
                     (reify WebSocket$OnTextMessage
@@ -51,7 +52,7 @@
                       (onMessage [this data] (onmessage this data)))))
         context (doto (ServletContextHandler.)
                   (.setContextPath "/")
-                  (.addServlet (ServletHolder. servlet) ws-path))
+                  (.addServlet (ServletHolder. servlet) ^String ws-path))
         connector (doto (SelectChannelConnector.)
                     (.setPort port)
                     (.setMaxIdleTime Integer/MAX_VALUE))
