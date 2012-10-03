@@ -27,11 +27,23 @@
       (Thread/sleep delay)
       (recur (+ theta (/ (* speed delay) 150))))))
 
-(defn -main [& [client-count uri]]
-  (let [client-count (if client-count (Integer/parseInt client-count) 1)
-        uri (if uri uri "ws://localhost:8080")]
-    (prn :client-count client-count)
-    (dotimes [i client-count]
-      (future
-        (circle uri i)))))
+(defn -main [& [mode arg1 arg2]]
+  (condp = mode
+    "server"
+    (let [port (if arg1 (Integer/parseInt arg1) 8090)
+          server (ws/ws-server :port port
+                  :onopen (fn [this conn] (println this conn)))]
+      (prn "server" :port port)
+      (.start server)
+      server)
+
+    "client"
+    (let [client-count (if arg1 (Integer/parseInt arg1) 1)
+          uri (if arg2 arg2 "ws://localhost:8090") ]
+      (prn "client" :client-count client-count :uri uri)
+      (dotimes [i client-count]
+        (future
+          (circle uri i))))
+
+    (throw (Exception. (str "Unknown mode: " mode)))))
 
